@@ -1,0 +1,6 @@
+decay_rates:
+  episodic: 0.05
+  semantic: 0.001
+  working: 0.3
+llm_client_keys: {}
+snapshot_read_token: 08C8qQesG9pkc3e_dmwNrs1O7CGz5HmRsQUL7sF58Ow

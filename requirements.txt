@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+lancedb
+sentence-transformers
+mcp
+httpx
+pyinstaller
+ijson

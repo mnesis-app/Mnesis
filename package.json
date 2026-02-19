@@ -1,0 +1,50 @@
+{
+  "name": "mnesis",
+  "version": "0.1.0",
+  "description": "Universal memory layer for LLMs",
+  "main": "electron/main.js",
+  "type": "module",
+  "scripts": {
+    "dev:backend": "uvicorn backend.main:app --reload --port 7860",
+    "dev:vite": "vite",
+    "dev:electron": "NODE_ENV=development electron electron/main.js",
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:vite\" \"npm:dev:electron\"",
+    "build:ui": "tsc && vite build",
+    "build:backend": "pyinstaller --clean --name mnesis-backend --onefile --paths . --distpath backend/dist run.py",
+    "build:bridge": "pyinstaller --clean --name mcp-stdio-bridge --onefile --paths . --distpath backend/dist backend/mcp_stdio_bridge.py",
+    "build": "npm run build:ui && npm run build:backend && npm run build:bridge && electron-builder",
+    "test": "vitest run"
+  },
+  "build": {
+    "appId": "com.mnesis.app",
+    "productName": "Mnesis",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "assets/icons/mnesis.icns"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/dist/mnesis-backend",
+        "to": "backend/mnesis-backend"
+      },
+      {
+        "from": "backend/dist/mcp-stdio-bridge",
+        "to": "backend/mcp-stdio-bridge"
+      },
+      {
+        "from": "dist",
+        "to": "dist"
+      }
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "release"
+    }
+  }
+}

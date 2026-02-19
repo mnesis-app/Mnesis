@@ -1,0 +1,89 @@
+"""
+Mnesis LLM Client Definitions
+==============================
+Defines which LLM clients are supported, where their config files live,
+and how the MCP stdio bridge is installed.
+
+Each entry:
+  name:          Human-readable label (shown in UI)
+  key:           Machine key (= source_llm value in memories)
+  config_path:   Absolute path to the client's config file (~ supported)
+  transport:     "stdio" | "http"
+  mcp_command:   Command to register (stdio transport only)
+  capabilities:  What Mnesis can do with this client
+
+Adding a new client requires ZERO code changes — just add an entry here.
+"""
+
+clients:
+  claude_desktop:
+    name: "Claude Desktop"
+    key: "claude"
+    config_path: "~/Library/Application Support/Claude/claude_desktop_config.json"
+    transport: "stdio"
+    mcp_command: "mnesis-bridge"
+    capabilities:
+      - memory_write
+      - memory_read
+      - memory_update
+      - memory_delete
+      - context_snapshot
+      - memory_feedback
+      - conversation_search
+    notes: |
+      Claude Desktop requires stdio transport via mcp-stdio-bridge.
+      The bridge binary is at resources/bridge/mcp-stdio-bridge.
+
+  cursor:
+    name: "Cursor"
+    key: "cursor"
+    config_path: "~/.cursor/mcp.json"
+    transport: "http"
+    capabilities:
+      - memory_write
+      - memory_read
+      - memory_update
+      - context_snapshot
+      - memory_feedback
+    notes: |
+      Cursor supports HTTP+SSE transport directly.
+      Point to http://127.0.0.1:{mcp_port}/mcp/sse.
+
+  windsurf:
+    name: "Windsurf"
+    key: "windsurf"
+    config_path: "~/.codeium/windsurf/mcp_config.json"
+    transport: "http"
+    capabilities:
+      - memory_write
+      - memory_read
+      - context_snapshot
+      - memory_feedback
+    notes: |
+      Windsurf supports HTTP+SSE. Point to http://127.0.0.1:{mcp_port}/mcp/sse.
+
+  chatgpt:
+    name: "ChatGPT (Desktop)"
+    key: "chatgpt"
+    config_path: "~/Library/Application Support/ChatGPT/mcp-settings.json"
+    transport: "http"
+    capabilities:
+      - context_snapshot
+    notes: |
+      ChatGPT Desktop has limited MCP support.
+      Fallback strategy: expose /api/v1/snapshot/text via snapshot_read_token.
+      Primary use is import from ChatGPT export files.
+
+  ollama:
+    name: "Ollama / Open WebUI"
+    key: "ollama"
+    config_path: null
+    transport: "http"
+    capabilities:
+      - memory_write
+      - memory_read
+      - context_snapshot
+      - memory_feedback
+    notes: |
+      Configure via environment variable MNESIS_MCP_URL in Open WebUI.
+      No auto-registration available.

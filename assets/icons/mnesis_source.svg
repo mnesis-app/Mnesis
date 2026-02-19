@@ -1,0 +1,45 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Full opaque background — macOS applies squircle mask itself -->
+  <rect width="1024" height="1024" fill="#0D0D0D"/>
+
+  <!-- Palimpseste mark: fragmenting lines, top → bottom, denser → sparser -->
+  <!-- Row 1: intact -->
+  <line x1="225.28" y1="215.55" x2="798.72" y2="215.55" stroke="#F5F3EE" stroke-width="14" stroke-linecap="round"/>
+  <!-- Row 2: one gap -->
+  <line x1="225.28" y1="294.40" x2="540.67" y2="294.40" stroke="#F5F3EE" stroke-width="14" stroke-linecap="round"/>
+  <line x1="583.68" y1="294.40" x2="798.72" y2="294.40" stroke="#F5F3EE" stroke-width="14" stroke-linecap="round"/>
+  <!-- Row 3: two gaps -->
+  <line x1="225.28" y1="373.25" x2="425.98" y2="373.25" stroke="#F5F3EE" stroke-width="12.5" stroke-linecap="round"/>
+  <line x1="468.99" y1="373.25" x2="641.02" y2="373.25" stroke="#F5F3EE" stroke-width="12.5" stroke-linecap="round"/>
+  <line x1="684.03" y1="373.25" x2="798.72" y2="373.25" stroke="#F5F3EE" stroke-width="12.5" stroke-linecap="round"/>
+  <!-- Row 4: three gaps -->
+  <line x1="225.28" y1="452.10" x2="354.30" y2="452.10" stroke="#F5F3EE" stroke-width="11" stroke-linecap="round"/>
+  <line x1="404.48" y1="452.10" x2="526.34" y2="452.10" stroke="#F5F3EE" stroke-width="11" stroke-linecap="round"/>
+  <line x1="576.51" y1="452.10" x2="676.86" y2="452.10" stroke="#F5F3EE" stroke-width="11" stroke-linecap="round"/>
+  <line x1="719.87" y1="452.10" x2="798.72" y2="452.10" stroke="#F5F3EE" stroke-width="11" stroke-linecap="round"/>
+  <!-- Row 5: four gaps -->
+  <line x1="225.28" y1="530.94" x2="311.30" y2="530.94" stroke="#F5F3EE" stroke-width="9.8" stroke-linecap="round"/>
+  <line x1="361.47" y1="530.94" x2="440.32" y2="530.94" stroke="#F5F3EE" stroke-width="9.8" stroke-linecap="round"/>
+  <line x1="490.50" y1="530.94" x2="562.18" y2="530.94" stroke="#F5F3EE" stroke-width="9.8" stroke-linecap="round"/>
+  <line x1="605.18" y1="530.94" x2="669.70" y2="530.94" stroke="#F5F3EE" stroke-width="9.8" stroke-linecap="round"/>
+  <line x1="712.70" y1="530.94" x2="777.22" y2="530.94" stroke="#F5F3EE" stroke-width="9.8" stroke-linecap="round"/>
+  <!-- Row 6: five gaps -->
+  <line x1="225.28" y1="609.79" x2="282.62" y2="609.79" stroke="#F5F3EE" stroke-width="8.3" stroke-linecap="round"/>
+  <line x1="332.80" y1="609.79" x2="382.98" y2="609.79" stroke="#F5F3EE" stroke-width="8.3" stroke-linecap="round"/>
+  <line x1="440.32" y1="609.79" x2="483.33" y2="609.79" stroke="#F5F3EE" stroke-width="8.3" stroke-linecap="round"/>
+  <line x1="533.50" y1="609.79" x2="576.51" y2="609.79" stroke="#F5F3EE" stroke-width="8.3" stroke-linecap="round"/>
+  <line x1="626.69" y1="609.79" x2="669.70" y2="609.79" stroke="#F5F3EE" stroke-width="8.3" stroke-linecap="round"/>
+  <line x1="712.70" y1="609.79" x2="755.71" y2="609.79" stroke="#F5F3EE" stroke-width="8.3" stroke-linecap="round"/>
+  <!-- Row 7: just dots -->
+  <line x1="246.78" y1="688.64" x2="275.46" y2="688.64" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+  <line x1="339.97" y1="688.64" x2="368.64" y2="688.64" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+  <line x1="440.32" y1="688.64" x2="468.99" y2="688.64" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+  <line x1="533.50" y1="688.64" x2="562.18" y2="688.64" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+  <line x1="626.69" y1="688.64" x2="655.36" y2="688.64" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+  <line x1="719.87" y1="688.64" x2="748.54" y2="688.64" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+  <!-- Row 8: barely there -->
+  <line x1="261.12" y1="767.49" x2="282.62" y2="767.49" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+  <line x1="382.98" y1="767.49" x2="404.48" y2="767.49" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+  <line x1="526.34" y1="767.49" x2="547.84" y2="767.49" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+  <line x1="669.70" y1="767.49" x2="691.20" y2="767.49" stroke="#F5F3EE" stroke-width="7.4" stroke-linecap="round"/>
+</svg>
