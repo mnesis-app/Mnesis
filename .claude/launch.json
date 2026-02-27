@@ -1,0 +1,35 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "uvicorn", "backend.main:app", "--reload", "--host", "127.0.0.1", "--port", "7860"],
+      "port": 7860
+    },
+    {
+      "name": "ui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:vite"],
+      "port": 5173
+    },
+    {
+      "name": "electron",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:electron"],
+      "port": 5173
+    },
+    {
+      "name": "docs",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "docs-site", "run", "start"],
+      "port": 3001
+    },
+    {
+      "name": "full-stack",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
+    }
+  ]
+}

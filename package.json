@@ -2,18 +2,72 @@
   "name": "mnesis",
   "version": "0.1.0",
   "description": "Universal memory layer for LLMs",
+  "homepage": "https://github.com/mnesis-app/Mnesis#readme",
+  "bugs": {
+    "url": "https://github.com/mnesis-app/Mnesis/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mnesis-app/Mnesis.git"
+  },
+  "author": "Julien Mezan <julien@mnesis.app>",
+  "license": "AGPL-3.0-only",
+  "keywords": ["memory", "llm", "mcp", "ai", "local-first", "electron"],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "main": "electron/main.js",
   "type": "module",
   "scripts": {
-    "dev:backend": "uvicorn backend.main:app --reload --port 7860",
-    "dev:vite": "vite",
+    "dev:backend": "python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 7860",
+    "dev:backend:reload": "python3 -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 7860",
+    "dev:vite": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "dev:electron": "NODE_ENV=development electron electron/main.js",
-    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:vite\" \"npm:dev:electron\"",
+    "clean:tmp": "python3 scripts/clean_workspace_tmp.py",
+    "dev": "npm run clean:tmp && concurrently \"npm:dev:backend:reload\" \"npm:dev:vite\" \"npm:dev:electron\"",
     "build:ui": "tsc && vite build",
     "build:backend": "pyinstaller --clean --name mnesis-backend --onefile --paths . --distpath backend/dist run.py",
-    "build:bridge": "pyinstaller --clean --name mcp-stdio-bridge --onefile --paths . --distpath backend/dist backend/mcp_stdio_bridge.py",
+    "build:bridge": "pyinstaller --clean --name mcp-stdio-bridge --onefile --distpath backend/dist backend/mcp_stdio_bridge.py",
     "build": "npm run build:ui && npm run build:backend && npm run build:bridge && electron-builder",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:backend:smoke": "python3 scripts/backend_smoke_checks.py",
+    "test:backend": "python3 -m pytest -q tests",
+    "check:v1": "python3 scripts/v1_public_check.py",
+    "check:v1:live": "python3 scripts/v1_public_check.py --require-api"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@tanstack/react-query": "^5.28.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "electron-updater": "^6.8.3",
+    "lucide-react": "^0.363.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-force-graph-2d": "^1.29.1",
+    "recharts": "^3.7.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^2.6.1",
+    "tailwindcss-animate": "^1.0.7",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "vitest": "^1.4.0"
   },
   "build": {
     "appId": "com.mnesis.app",
@@ -45,6 +99,11 @@
     "directories": {
       "buildResources": "assets",
       "output": "release"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "mnesis-app",
+      "repo": "Mnesis"
     }
   }
 }

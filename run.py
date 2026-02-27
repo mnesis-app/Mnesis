@@ -6,5 +6,6 @@ import multiprocessing
 if __name__ == "__main__":
     multiprocessing.freeze_support()
     port = int(os.environ.get("MNESIS_PORT", 7860))
-    # Bind to 127.0.0.1 explicitly to avoid firewall issues
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    # Default to loopback for desktop mode; set MNESIS_HOST=0.0.0.0 for server/Docker mode
+    host = os.environ.get("MNESIS_HOST", "127.0.0.1")
+    uvicorn.run(app, host=host, port=port)

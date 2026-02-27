@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
     // Dynamic port: set by main process before window loads
@@ -6,5 +6,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getMcpPort: () => ipcRenderer.sendSync('get-mcp-port'),
 
     // Shell
-    openExternal: (url: string) => ipcRenderer.send('open-external', url),
+    openExternal: (url) => ipcRenderer.send('open-external', url),
+
+    // Auto-updater
+    checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+    getAppVersion: () => ipcRenderer.invoke('updater:version'),
 })

@@ -2,7 +2,8 @@
 // Shows Mnesis status in the macOS menu bar (or Windows system tray).
 // Context menu: Open Mnesis, Copy Snapshot Token, Quit.
 
-import { Tray, Menu, nativeImage, shell } from 'electron'
+import electron from 'electron'
+const { Tray, Menu, nativeImage, shell } = electron
 import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
@@ -25,6 +26,7 @@ function getTrayIconPath(status) {
         green: 'tray_green.png',
         yellow: 'tray_yellow.png',
         red: 'tray_red.png',
+        conflict: 'tray_red.png',
     }[status] || 'tray_yellow.png'
 
     const iconPath = path.join(__dirname, '../assets/icons', iconName)
@@ -33,6 +35,14 @@ function getTrayIconPath(status) {
 }
 
 function buildContextMenu(restPort, getMainWindow) {
+    const statusLabel = currentStatus === 'green'
+        ? '● Ready'
+        : currentStatus === 'yellow'
+            ? '◐ Loading…'
+            : currentStatus === 'conflict'
+                ? '● Conflicts Pending'
+                : '● Offline';
+
     return Menu.buildFromTemplate([
         {
             label: 'Open Mnesis',
@@ -49,9 +59,9 @@ function buildContextMenu(restPort, getMainWindow) {
             label: 'Copy Memory Snapshot URL',
             click: async () => {
                 try {
-                    const res = await fetch(`http://127.0.0.1:${restPort}/api/v1/admin/config`)
-                    const config = await res.json()
-                    const token = config.snapshot_read_token || ''
+                    const res = await fetch(`http://127.0.0.1:${restPort}/api/v1/admin/snapshot-token`)
+                    const data = await res.json()
+                    const token = data.token || ''
                     const url = `http://127.0.0.1:${restPort}/api/v1/snapshot/text?token=${token}`
                     const { clipboard } = await import('electron')
                     clipboard.writeText(url)
@@ -61,24 +71,22 @@ function buildContextMenu(restPort, getMainWindow) {
         {
             label: 'Open Logs…',
             click: () => {
-                const { app } = require('electron')
                 const logDir = process.platform === 'darwin'
-                    ? path.join(app.getPath('logs'), 'Mnesis')
-                    : path.join(process.env.APPDATA || app.getPath('userData'), 'Mnesis', 'Logs')
+                    ? path.join(electron.app.getPath('logs'), 'Mnesis')
+                    : path.join(process.env.APPDATA || electron.app.getPath('userData'), 'Mnesis', 'Logs')
                 shell.openPath(logDir)
             }
         },
         { type: 'separator' },
         {
-            label: `Status: ${currentStatus === 'green' ? '● Ready' : currentStatus === 'yellow' ? '◐ Loading…' : '● Offline'}`,
+            label: `Status: ${statusLabel}`,
             enabled: false,
         },
         { type: 'separator' },
         {
             label: 'Quit Mnesis',
             click: () => {
-                const { app } = require('electron')
-                app.quit()
+                electron.app.quit()
             }
         }
     ])
@@ -125,7 +133,7 @@ export function createTray(restPort, getMainWindow) {
 
 /**
  * Update the tray icon to reflect current backend status.
- * @param {'green'|'yellow'|'red'} status
+ * @param {'green'|'yellow'|'red'|'conflict'} status
  * @param {number} restPort
  * @param {() => import('electron').BrowserWindow | null} getMainWindow
  */

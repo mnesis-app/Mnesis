@@ -1,0 +1,412 @@
+/* ──────────────────────────────────────────────────────────── */
+/* Import/Export — Design tokens & layout                       */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-page {
+    --ie-text: #f5f3ee;
+    --ie-muted: #cfcfcf;
+    --ie-soft: #9b9b9b;
+    --ie-faint: #767676;
+    --ie-border: #1a1a1a;
+    --ie-border-strong: #2a2a2a;
+    --ie-panel: #080808;
+    --ie-input: #050505;
+    --ie-input-border: #1e1e1e;
+    --ie-input-focus: #333333;
+    --ie-ok: #10b981;
+    --ie-error: #ef4444;
+
+    width: 100%;
+    padding: 40px 48px 80px;
+    color: var(--ie-text);
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Two-column section layout (same as Settings)                 */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-section {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 0 32px;
+    padding: 28px 0;
+    border-bottom: 1px solid #0f0f0f;
+    align-items: start;
+}
+
+.ie-section:last-child {
+    border-bottom: none;
+}
+
+.ie-section-head {
+    position: sticky;
+    top: 0;
+    padding-top: 2px;
+}
+
+.ie-section-head h2 {
+    margin: 0 0 10px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #f5f3ee;
+}
+
+.ie-section-head p {
+    margin: 0 0 14px;
+    font-size: 12px;
+    color: var(--ie-faint);
+    line-height: 1.65;
+}
+
+/* Source legend pills */
+.ie-source-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.ie-source-tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #444;
+    border: 1px solid #1a1a1a;
+    border-radius: 999px;
+    padding: 2px 7px;
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Panel                                                        */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-panel {
+    border: 1px solid var(--ie-border);
+    border-radius: 4px;
+    background: var(--ie-panel);
+    padding: 20px;
+    transition: border-color 150ms ease;
+}
+
+.ie-panel:hover {
+    border-color: var(--ie-border-strong);
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Source field                                                 */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-source-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.ie-field-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #444;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ie-select {
+    flex: 1;
+    height: 34px;
+    background: var(--ie-input);
+    border: 1px solid var(--ie-input-border);
+    border-radius: 4px;
+    color: #c0c0c0;
+    padding: 0 10px;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 150ms ease;
+}
+
+.ie-select:focus {
+    border-color: var(--ie-input-focus);
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Drop zone                                                    */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-dropzone {
+    border: 1px dashed #222;
+    border-radius: 4px;
+    background: #040404;
+    padding: 32px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color 150ms ease, background 150ms ease;
+    margin-bottom: 14px;
+    min-height: 110px;
+}
+
+.ie-dropzone:hover,
+.ie-dropzone--active {
+    border-color: #444;
+    background: #070707;
+}
+
+.ie-dropzone-icon {
+    color: #2a2a2a;
+}
+
+.ie-dropzone--active .ie-dropzone-icon {
+    color: #555;
+}
+
+.ie-dropzone-label {
+    font-size: 12px;
+    color: #444;
+    text-align: center;
+}
+
+.ie-dropzone-hint {
+    font-size: 10px;
+    color: #222;
+    text-align: center;
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Messages (error / success)                                   */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-message {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.ie-message--error {
+    border: 1px solid #3a1616;
+    border-left: 2px solid var(--ie-error);
+    background: #0f0606;
+    color: #fca5a5;
+}
+
+.ie-message--success {
+    border: 1px solid #163a2a;
+    border-left: 2px solid var(--ie-ok);
+    background: #040f09;
+    color: #6ee7b7;
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Preview / report stat cells                                  */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 1px;
+    background: #0f0f0f;
+    border: 1px solid #0f0f0f;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.ie-stat-cell {
+    background: #080808;
+    padding: 9px 12px;
+}
+
+.ie-stat-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #333;
+    margin-bottom: 3px;
+}
+
+.ie-stat-value {
+    font-size: 13px;
+    color: #999;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Sample memory cards                                          */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-samples-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.ie-samples-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.ie-sample-card {
+    background: #050505;
+    border: 1px solid #111;
+    border-radius: 4px;
+    padding: 10px 12px;
+}
+
+.ie-sample-content {
+    font-size: 11px;
+    color: #777;
+    line-height: 1.5;
+    margin: 0 0 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ie-sample-tags {
+    display: flex;
+    gap: 10px;
+    font-size: 9px;
+    color: #333;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Action row                                                   */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-action-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid #0f0f0f;
+}
+
+.ie-btn {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 4px;
+    border: 1px solid #222;
+    background: transparent;
+    color: #888;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.ie-btn:hover:not(:disabled) {
+    border-color: #333;
+    color: #e0e0e0;
+    background: #0d0d0d;
+}
+
+.ie-btn:disabled {
+    cursor: wait;
+    opacity: 0.45;
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Export panel — single row                                    */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-export-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.ie-export-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.ie-export-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+.ie-export-desc {
+    font-size: 10px;
+    color: #333;
+    line-height: 1.5;
+}
+
+.ie-export-icon {
+    color: #333;
+    flex-shrink: 0;
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Spinner                                                      */
+/* ──────────────────────────────────────────────────────────── */
+
+.ie-spinner {
+    animation: ie-spin 1s linear infinite;
+}
+
+@keyframes ie-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/* Responsive                                                   */
+/* ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .ie-page {
+        padding: 24px 20px 56px;
+    }
+
+    .ie-section {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .ie-section-head {
+        position: static;
+    }
+
+    .ie-export-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

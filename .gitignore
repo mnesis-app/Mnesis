@@ -9,3 +9,56 @@ build
 release
 
 data/
+
+# --- Added by Agent ---
+
+# Temporary directories and files
+.tmp*/
+.tmp_*
+.tmphome/
+
+# Backups and adhoc testing
+*backup*.json
+test_*.py
+!tests/
+!tests/**/*.py
+
+# UI, HTML artifacts and design
+Logo\ Mnesis*.html
+*.resolved
+
+# IDEs and environments
+.env
+.env.local
+.vscode/
+.idea/
+
+# Local runtime config (real file lives in ~/.mnesis/config.yaml)
+config.yaml
+
+# Claude Code agent artifacts (plans, worktree refs — not useful for contributors)
+.claude/plans/
+.claude/worktrees/
+
+# Dev artifacts and generated logs
+test.json
+.system_generated/
+
+# Root binary artifact (mcp-stdio-bridge build output)
+/bin
+
+# Python artifacts
+*.pyc
+.venv/
+venv/
+
+# Log files
+*.log
+
+# Database files
+*.db
+*.lance
+*.kuzu
+
+# Rust build artifacts (old mcp-stdio-bridge Rust implementation)
+mcp-stdio-bridge/target/

@@ -1,0 +1,8 @@
+# Example only.
+# Runtime config is stored in: ~/.mnesis/config.yaml (or %APPDATA%/Mnesis/config.yaml on Windows).
+decay_rates:
+  episodic: 0.05
+  semantic: 0.001
+  working: 0.3
+llm_client_keys: {}
+snapshot_read_token: ""

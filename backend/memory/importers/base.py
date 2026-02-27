@@ -8,6 +8,7 @@ class RawMemory(BaseModel):
     source: str # "claude", "chatgpt", "gemini"
     original_created_at: Optional[datetime] = None
     original_category: Optional[str] = None # For mapping
+    original_level: Optional[str] = None
     metadata: dict = {}
 
 class BaseImporter(ABC):

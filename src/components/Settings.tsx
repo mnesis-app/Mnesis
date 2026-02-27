@@ -1,205 +1,177 @@
-import { useConfig, useRotateToken } from '../lib/queries'
-import { Loader2, RefreshCw, Copy, Check } from 'lucide-react'
-import { useState } from 'react'
+import { Check, Copy, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useConfig, useRotateToken, useSnapshotToken } from '../lib/queries'
+import { ActionButton, IconButton, InlineMessage, Panel, SectionBlock, cx, isDangerMessage } from './SettingsShared'
+import { SettingsInsights } from './SettingsInsights'
+import { SettingsMaintenance } from './SettingsMaintenance'
+import { SettingsMcp } from './SettingsMcp'
+import { SettingsSync } from './SettingsSync'
+import './Settings.css'
 
-const sectionLabel: React.CSSProperties = {
-    fontSize: '9px', fontWeight: 800, letterSpacing: '0.3em',
-    textTransform: 'uppercase' as const, color: '#333', marginBottom: '12px', display: 'block',
-}
+type Tab = 'mcp' | 'insights' | 'sync' | 'dev'
 
-const card: React.CSSProperties = {
-    background: '#080808',
-    border: '1px solid #1a1a1a',
-    borderRadius: '4px',
-    padding: '20px',
-    transition: 'border-color 150ms ease',
-}
+const TABS: { id: Tab; label: string }[] = [
+    { id: 'mcp', label: 'MCP' },
+    { id: 'insights', label: 'Insights' },
+    { id: 'sync', label: 'Sync' },
+    { id: 'dev', label: 'Dev' },
+]
 
 export function Settings() {
-    const { data: config, isLoading, isError } = useConfig()
+    const { isLoading, isError } = useConfig()
     const rotateToken = useRotateToken()
+    const { data: snapshotTokenData } = useSnapshotToken()
+
+    const [activeTab, setActiveTab] = useState<Tab>('mcp')
     const [copied, setCopied] = useState(false)
+    const [tokenVisible, setTokenVisible] = useState(false)
+    const [appVersion, setAppVersion] = useState<string>('')
+    const [updateBusy, setUpdateBusy] = useState(false)
+    const [updateMessage, setUpdateMessage] = useState<string | null>(null)
 
-    if (isLoading) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '80px' }}>
-            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#2a2a2a' }} />
-        </div>
-    )
-    if (isError || !config) return (
-        <div style={{ padding: '80px', color: '#ef4444', fontSize: '12px' }}>Failed to load configuration.</div>
-    )
+    const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI
 
-    const handleCopy = () => {
-        if (config?.snapshot_read_token) {
-            navigator.clipboard.writeText(config.snapshot_read_token)
+    useEffect(() => {
+        if (!isElectron) return
+        ;(window as any).electronAPI.getAppVersion?.()
+            .then((v: string) => setAppVersion(v || ''))
+            .catch(() => {})
+    }, [isElectron])
+
+    if (isLoading) {
+        return (
+            <div className="settings-loading">
+                <Loader2 size={20} className="settings-spinner" />
+            </div>
+        )
+    }
+
+    if (isError) {
+        return <div className="settings-error">Failed to load configuration.</div>
+    }
+
+    const handleCopy = async () => {
+        const token = snapshotTokenData?.token
+        if (!token) return
+        try {
+            await navigator.clipboard.writeText(token)
             setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
+            setTimeout(() => setCopied(false), 1800)
+        } catch {
+            setCopied(false)
         }
     }
 
-    const iconBtn: React.CSSProperties = {
-        padding: '7px', background: 'transparent',
-        border: '1px solid #1e1e1e', borderRadius: '4px',
-        cursor: 'pointer', color: '#444',
-        transition: 'all 150ms ease', display: 'flex', alignItems: 'center',
-    }
-
     return (
-        <div style={{ padding: '36px 40px', maxWidth: '740px' }}>
-
-            {/* ── Snapshot Access ── */}
-            <section style={{ marginBottom: '36px' }}>
-                <span style={sectionLabel}>Snapshot Access</span>
-                <p style={{ fontSize: '12px', color: '#444', margin: '0 0 16px', lineHeight: 1.6 }}>
-                    Use this token to allow external tools (like ChatGPT) to read your memory snapshot. Keep it secret.
-                </p>
-                <div style={card}>
-                    <span style={{ ...sectionLabel, marginBottom: '10px' }}>Snapshot Read Token</span>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <code style={{
-                            flex: 1, background: '#050505',
-                            border: '1px solid #1a1a1a', borderRadius: '4px',
-                            padding: '8px 12px', fontSize: '11px',
-                            fontFamily: 'monospace', color: '#555',
-                            wordBreak: 'break-all',
-                        }}>
-                            {config?.snapshot_read_token ?? 'Token not available'}
+        <div className="settings-page">
+            {/* ── Snapshot Access ───────────────────────────────────────────────── */}
+            <SectionBlock
+                title="Snapshot Access"
+                description="Use this token to allow external tools (like ChatGPT) to read your memory snapshot. Keep it secret."
+            >
+                <Panel>
+                    <div className="settings-token-row">
+                        <code className="settings-token-value">
+                            {tokenVisible
+                                ? (snapshotTokenData?.token ?? 'Token not available')
+                                : '••••••••••••••••••••••••'}
                         </code>
-                        <button onClick={handleCopy} style={iconBtn} title="Copy">
-                            {copied ? <Check size={15} style={{ color: '#10b981' }} /> : <Copy size={15} />}
-                        </button>
-                        <button
-                            onClick={() => rotateToken.mutate()}
-                            disabled={rotateToken.isPending}
-                            style={iconBtn} title="Rotate"
-                        >
-                            {rotateToken.isPending
-                                ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-                                : <RefreshCw size={15} />}
-                        </button>
+                        <IconButton onClick={() => setTokenVisible((v) => !v)} title={tokenVisible ? 'Hide token' : 'Reveal token'}>
+                            {tokenVisible ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </IconButton>
+                        <IconButton onClick={handleCopy} title="Copy">
+                            {copied ? <Check size={15} className="settings-icon-success" /> : <Copy size={15} />}
+                        </IconButton>
+                        <IconButton onClick={() => rotateToken.mutate()} title="Rotate" disabled={rotateToken.isPending}>
+                            {rotateToken.isPending ? <Loader2 size={15} className="settings-spinner" /> : <RefreshCw size={15} />}
+                        </IconButton>
                     </div>
-                    <p style={{ fontSize: '10px', color: '#2a2a2a', margin: '8px 0 0' }}>
-                        Rotating the token will immediately invalidate the old one.
+                    <p className="settings-helper-text">Rotating the token immediately invalidates the previous one.</p>
+                </Panel>
+            </SectionBlock>
+
+            {/* ── Tab navigation ────────────────────────────────────────────────── */}
+            <div className="settings-tabs-nav" role="tablist" aria-label="Settings sections">
+                {TABS.map(({ id, label }) => (
+                    <button
+                        key={id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === id}
+                        className={cx('settings-tab', activeTab === id && 'settings-tab--active')}
+                        onClick={() => setActiveTab(id)}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+
+            {/* ── Tab content ───────────────────────────────────────────────────── */}
+            {activeTab === 'mcp' && <SettingsMcp />}
+            {activeTab === 'insights' && <SettingsInsights />}
+            {activeTab === 'sync' && <SettingsSync />}
+            {activeTab === 'dev' && <SettingsMaintenance />}
+
+            {/* ── About & Updates ───────────────────────────────────────────────── */}
+            <SectionBlock
+                title="About & Updates"
+                description="Check for new versions of Mnesis. Updates are downloaded in the background and installed on next restart."
+            >
+                <Panel>
+                    <p className="settings-helper-text">
+                        Version: <strong>{appVersion || '—'}</strong>
+                        {!isElectron && <span> · running in browser / dev mode</span>}
                     </p>
-                </div>
-            </section>
-
-            {/* ── Integrations ── */}
-            <section style={{ marginBottom: '36px' }}>
-                <span style={sectionLabel}>Integrations</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-
-                    {/* ChatGPT */}
-                    <IntegrationCard title="ChatGPT">
-                        <p style={{ fontSize: '12px', color: '#444', lineHeight: 1.6, margin: '0 0 12px' }}>
-                            Create a custom GPT with an Action to talk to Mnesis.
-                        </p>
-                        <ol style={{ margin: 0, padding: '0 0 0 16px', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {[
-                                'Create new GPT → Add Action',
-                                'Import from URL: http://127.0.0.1:7860/openapi.json',
-                                'Auth Type: API Key (Bearer). Paste Snapshot Token.',
-                            ].map((s, i) => (
-                                <li key={i} style={{ fontSize: '11px', color: '#444', display: 'flex', gap: '8px' }}>
-                                    <span style={{ color: '#2a2a2a', flexShrink: 0 }}>{i + 1}.</span>
-                                    <span>{s}</span>
-                                </li>
-                            ))}
-                        </ol>
-                    </IntegrationCard>
-
-                    {/* Claude Desktop */}
-                    <IntegrationCard title="Claude Desktop">
-                        <p style={{ fontSize: '12px', color: '#444', lineHeight: 1.6, margin: '0 0 12px' }}>
-                            Add Mnesis to your Claude Desktop config file.
-                        </p>
-                        <pre style={{
-                            background: '#050505', border: '1px solid #1a1a1a',
-                            borderRadius: '4px', padding: '12px', fontSize: '10px',
-                            fontFamily: 'monospace', color: '#444',
-                            overflowX: 'auto', margin: '0 0 8px',
-                        }}>
-                            {`"mcpServers": {\n  "mnesis": {\n    "command": "{app_path}/Contents/Resources/extraResources/mcp-stdio-bridge",\n    "env": {\n      "MNESIS_MCP_URL": "http://127.0.0.1:7861",\n      "MNESIS_API_KEY": "${config.snapshot_read_token}"\n    }\n  }\n}`}
-                        </pre>
-                        <p style={{ fontSize: '10px', color: '#2a2a2a', margin: 0 }}>
-                            Config: <code style={{ fontFamily: 'monospace', color: '#333' }}>~/Library/Application Support/Claude/claude_desktop_config.json</code>
-                        </p>
-                    </IntegrationCard>
-
-                    {/* Cursor */}
-                    <IntegrationCard title="Cursor">
-                        <p style={{ fontSize: '12px', color: '#444', lineHeight: 1.6, margin: '0 0 12px' }}>
-                            Add Mnesis-MCP to your Cursor features.
-                        </p>
-                        <ol style={{ margin: 0, padding: '0 0 0 16px', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <li style={{ fontSize: '11px', color: '#444', display: 'flex', gap: '8px' }}>
-                                <span style={{ color: '#2a2a2a' }}>1.</span>
-                                <span>Go to <strong style={{ color: '#888' }}>Cursor Settings → Features → MCP</strong></span>
-                            </li>
-                            <li style={{ fontSize: '11px', color: '#444', display: 'flex', gap: '8px' }}>
-                                <span style={{ color: '#2a2a2a' }}>2.</span>
-                                <span>
-                                    Add MCP Server · Type: <code style={{ fontFamily: 'monospace', color: '#555' }}>SSE</code> ·
-                                    URL: <code style={{ fontFamily: 'monospace', color: '#555' }}>http://127.0.0.1:7860/mcp/sse</code>
-                                </span>
-                            </li>
-                        </ol>
-                    </IntegrationCard>
-                </div>
-            </section>
-
-            {/* ── Memory Decay ── */}
-            <section>
-                <span style={sectionLabel}>Memory Decay</span>
-                <p style={{ fontSize: '12px', color: '#444', margin: '0 0 16px', lineHeight: 1.6 }}>
-                    Rate at which memories lose importance over time without retrieval.
-                </p>
-                <div style={card}>
-                    {[
-                        { label: 'Semantic', value: config?.decay_rates?.semantic ?? '0.001' },
-                        { label: 'Episodic', value: config?.decay_rates?.episodic ?? '0.05' },
-                        { label: 'Working', value: config?.decay_rates?.working ?? '0.3' },
-                    ].map(({ label: l, value }, i, arr) => (
-                        <div
-                            key={l}
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '10px 0',
-                                borderBottom: i < arr.length - 1 ? '1px solid #1a1a1a' : 'none',
+                    {isElectron && (
+                        <>
+                            <div className="settings-actions-row settings-actions-row--tight">
+                                <ActionButton
+                                    onClick={async () => {
+                                        setUpdateMessage(null)
+                                        setUpdateBusy(true)
+                                        try {
+                                            const res = await (window as any).electronAPI.checkForUpdates()
+                                            if (!res.success) {
+                                                setUpdateMessage(res.error || 'Update check failed.')
+                                            } else if (res.updateInfo) {
+                                                setUpdateMessage(`Update available: v${res.updateInfo.version}. Downloading in background…`)
+                                            } else {
+                                                setUpdateMessage('Mnesis is up to date.')
+                                            }
+                                        } catch (e: any) {
+                                            setUpdateMessage(e?.message || 'Update check failed.')
+                                        } finally {
+                                            setUpdateBusy(false)
+                                        }
+                                    }}
+                                    busy={updateBusy}
+                                    icon={<RefreshCw size={14} />}
+                                >
+                                    Check for updates
+                                </ActionButton>
+                            </div>
+                            {updateMessage && (
+                                <InlineMessage danger={isDangerMessage(updateMessage)}>
+                                    {updateMessage}
+                                </InlineMessage>
+                            )}
+                        </>
+                    )}
+                    <p className="settings-helper-text settings-helper-text--top-space">
+                        <a
+                            href="https://github.com/mnesis-app/Mnesis/releases"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                if (isElectron) (window as any).electronAPI.openExternal('https://github.com/mnesis-app/Mnesis/releases')
+                                else window.open('https://github.com/mnesis-app/Mnesis/releases', '_blank')
                             }}
+                            className="settings-link"
                         >
-                            <span style={{ fontSize: '12px', color: '#888' }}>{l}</span>
-                            <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#444' }}>{value}</span>
-                        </div>
-                    ))}
-                </div>
-            </section>
-        </div>
-    )
-}
-
-function IntegrationCard({ title, children }: { title: string; children: React.ReactNode }) {
-    return (
-        <div
-            style={{
-                background: '#080808',
-                border: '1px solid #1a1a1a',
-                borderRadius: '4px',
-                padding: '20px',
-                transition: 'border-color 150ms ease',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = '#1a1a1a')}
-        >
-            <p style={{
-                fontSize: '11px', fontWeight: 800, letterSpacing: '0.15em',
-                textTransform: 'uppercase', color: '#f5f3ee', margin: '0 0 12px',
-            }}>
-                {title}
-            </p>
-            {children}
+                            View releases on GitHub
+                        </a>
+                    </p>
+                </Panel>
+            </SectionBlock>
         </div>
     )
 }

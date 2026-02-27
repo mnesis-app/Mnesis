@@ -2,10 +2,17 @@ from datetime import datetime, timezone
 import uuid
 import logging
 from typing import List, Optional
+
 from backend.database.client import get_db
 from backend.database.schema import Session
+from backend.memory.write_queue import enqueue_write
+from backend.utils.context import mcp_client_name_ctx
 
 logger = logging.getLogger(__name__)
+
+
+def _escape_sql(value: str) -> str:
+    return str(value or "").replace("'", "''")
 
 async def start_session(source_llm: str, api_key_id: Optional[str] = None) -> str:
     db = get_db()
@@ -26,27 +33,43 @@ async def start_session(source_llm: str, api_key_id: Optional[str] = None) -> st
         memory_ids_feedback=[]
     )
     
-    try:
+    async def _write_op():
         tbl.add([session])
+
+    try:
+        await enqueue_write(_write_op)
         return session_id
     except Exception as e:
         logger.error(f"Failed to create session: {e}")
         return session_id # Return ID anyway so flow continues?
 
+
+def _session_identity_defaults() -> tuple[str, str]:
+    client_name = str(mcp_client_name_ctx.get() or "").strip().lower()
+    if client_name:
+        return client_name, client_name
+    return "mcp", "unknown"
+
 async def update_session_activity(
     session_id: str, 
-    read_ids: List[str] = [], 
-    write_ids: List[str] = [],
-    feedback_ids: List[str] = []
+    read_ids: Optional[List[str]] = None,
+    write_ids: Optional[List[str]] = None,
+    feedback_ids: Optional[List[str]] = None
 ):
     if not session_id:
         return
+
+    read_ids = read_ids or []
+    write_ids = write_ids or []
+    feedback_ids = feedback_ids or []
 
     db = get_db()
     tbl = db.open_table("sessions")
     
     # Read-modify-write
-    matches = tbl.search().where(f"id = '{session_id}'").limit(1).to_list()
+    escaped_session_id = _escape_sql(session_id)
+    matches = tbl.search().where(f"id = '{escaped_session_id}'").limit(1).to_list()
+    inferred_source_llm, inferred_api_key_id = _session_identity_defaults()
     if not matches:
         # Auto-create session if not found (lazy init)
         # We don't have source_llm here easily unless passed. 
@@ -65,8 +88,8 @@ async def update_session_activity(
         now = datetime.now(timezone.utc)
         session = Session(
             id=session_id,
-            api_key_id="unknown",
-            source_llm="mcp", # Default
+            api_key_id=inferred_api_key_id,
+            source_llm=inferred_source_llm,
             started_at=now,
             ended_at=None,
             end_reason=None,
@@ -74,8 +97,11 @@ async def update_session_activity(
             memory_ids_written=[],
             memory_ids_feedback=[]
         )
+        async def _write_create():
+            tbl.add([session])
+
         try:
-             tbl.add([session])
+             await enqueue_write(_write_create)
         except Exception:
              pass # Race condition?
              
@@ -97,18 +123,21 @@ async def update_session_activity(
     updated_session['memory_ids_read'] = new_read
     updated_session['memory_ids_written'] = new_write
     updated_session['memory_ids_feedback'] = new_feedback
+    if str(updated_session.get("api_key_id") or "").strip().lower() in {"", "unknown"} and inferred_api_key_id != "unknown":
+        updated_session["api_key_id"] = inferred_api_key_id
+    if str(updated_session.get("source_llm") or "").strip().lower() in {"", "mcp", "unknown"} and inferred_source_llm:
+        updated_session["source_llm"] = inferred_source_llm
     
     # Verify types (list of str)
     # LanceDB strict typing might need explicit conversion if they are not strings?
     # They should be strings.
     
-    try:
-        # Delete old
-        tbl.delete(f"id = '{session_id}'")
-        # Insert new
-        # We need to convert dict back to Session model to be safe?
-        # Or just list of dicts.
+    async def _write_update():
+        tbl.delete(f"id = '{escaped_session_id}'")
         tbl.add([updated_session])
+
+    try:
+        await enqueue_write(_write_update)
     except Exception as e:
         logger.error(f"Failed to update session {session_id}: {e}")
 
@@ -119,14 +148,18 @@ async def end_session(session_id: str, reason: str = "unknown"):
     db = get_db()
     tbl = db.open_table("sessions")
     now = datetime.now(timezone.utc)
+    escaped_session_id = _escape_sql(session_id)
     
-    try:
+    async def _write_op():
         tbl.update(
-            where=f"id = '{session_id}'",
+            where=f"id = '{escaped_session_id}'",
             values={
                 "ended_at": now,
                 "end_reason": reason
             }
         )
+
+    try:
+        await enqueue_write(_write_op)
     except Exception as e:
         logger.error(f"Failed to end session {session_id}: {e}")

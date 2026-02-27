@@ -1,0 +1,156 @@
+.first-setup-shell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    width: 100%;
+    background: #080808;
+    color: #f5f3ee;
+    overflow: hidden;
+}
+
+.first-setup-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: first-setup-fade 400ms ease both;
+}
+
+/* ── Wordmark ── */
+.first-setup-wordmark {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+/* ── Status text ── */
+.first-setup-message {
+    font-size: 15px;
+    font-weight: 500;
+    color: #f5f3ee;
+    letter-spacing: -0.01em;
+    text-align: center;
+    min-height: 22px;
+    margin-bottom: 8px;
+    transition: color 200ms ease;
+}
+
+.first-setup-detail {
+    font-size: 12px;
+    color: #6a6a6a;
+    text-align: center;
+    min-height: 18px;
+    margin-bottom: 32px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 360px;
+}
+
+/* ── Dots ── */
+.first-setup-dots {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.first-setup-dot-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.first-setup-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #1f1f1f;
+    transition: background-color 220ms ease, box-shadow 220ms ease;
+}
+
+.first-setup-dot-label {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #3a3a3a;
+    transition: color 220ms ease;
+}
+
+/* Active */
+@keyframes first-setup-breathe {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 243, 238, 0); }
+    50%       { box-shadow: 0 0 0 4px rgba(245, 243, 238, 0.12); }
+}
+
+.first-setup-dot-item--active .first-setup-dot {
+    background: #f5f3ee;
+    animation: first-setup-breathe 2s ease infinite;
+}
+
+.first-setup-dot-item--active .first-setup-dot-label {
+    color: #b0b0b0;
+}
+
+/* Done */
+.first-setup-dot-item--done .first-setup-dot {
+    background: #10b981;
+}
+
+.first-setup-dot-item--done .first-setup-dot-label {
+    color: #3a7a5a;
+}
+
+/* Error */
+.first-setup-dot-item--error .first-setup-dot {
+    background: #f87171;
+}
+
+.first-setup-dot-item--error .first-setup-dot-label {
+    color: #f87171;
+}
+
+/* ── Progress bar — hairline at bottom ── */
+.first-setup-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    overflow: hidden;
+}
+
+.first-setup-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: rgba(245, 243, 238, 0.85);
+    transition: width 300ms ease;
+}
+
+.first-setup-progress-indeterminate {
+    width: 28%;
+    animation: first-setup-indeterminate 1.6s ease-in-out infinite;
+}
+
+@keyframes first-setup-indeterminate {
+    0%   { transform: translateX(-120%); }
+    65%  { transform: translateX(420%); }
+    100% { transform: translateX(420%); }
+}
+
+/* ── State theming ── */
+.first-setup-state-error .first-setup-message {
+    color: #f87171;
+}
+
+.first-setup-state-ready .first-setup-message {
+    color: #10b981;
+}
+
+/* ── Entrance animation ── */
+@keyframes first-setup-fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}

@@ -3,7 +3,7 @@ import asyncio
 from collections.abc import Callable, Awaitable
 from typing import Any
 
-_queue: asyncio.Queue = asyncio.Queue()
+_queue: asyncio.Queue = asyncio.Queue(maxsize=500)
 _worker_task: asyncio.Task | None = None
 
 async def enqueue_write(operation: Callable[[], Awaitable[Any]]) -> Any:

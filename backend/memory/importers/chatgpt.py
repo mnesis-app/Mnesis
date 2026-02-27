@@ -1,8 +1,11 @@
-import json
-from datetime import datetime
-from typing import List, Generator, Tuple
-from backend.memory.importers.base import BaseImporter, RawMemory
 import logging
+import json
+import hashlib
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Generator, List, Optional, Tuple
+
+from backend.memory.importers.base import BaseImporter, RawMemory
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +41,20 @@ class ChatGPTImporter(BaseImporter):
             # PROMPT.md implies "memories.json" is the file.
             # Format: [{"memory": "...", "created_at": "..."}]
             
-            # If data is dict with "list" key, or just list.
-            items = data if isinstance(data, list) else data.get("list", [])
+            if isinstance(data, list):
+                items = data
+            else:
+                items = data.get("memories") or data.get("list") or data.get("items") or []
             
             for item in items:
-                content = item.get("memory", "") or item.get("content", "")
+                if not isinstance(item, dict):
+                    continue
+                # Skip full conversation exports (they contain a mapping tree).
+                if "mapping" in item:
+                    continue
+
+                raw_content = item.get("memory", "") or item.get("content", "") or item.get("text", "")
+                content = raw_content if isinstance(raw_content, str) else ""
                 if not content:
                     continue
                     
@@ -62,6 +74,7 @@ class ChatGPTImporter(BaseImporter):
                     source="chatgpt",
                     original_created_at=created_at,
                     original_category=category,
+                    original_level=level,
                     metadata={}
                 ))
         except Exception as e:
@@ -71,37 +84,171 @@ class ChatGPTImporter(BaseImporter):
         return results
 
     def parse_conversations(self, file_path: str) -> Generator[dict, None, None]:
-        # ChatGPT conversations.json
         import ijson
-        
+
+        def _to_datetime(value: Any) -> Optional[datetime]:
+            if value is None:
+                return None
+            if isinstance(value, datetime):
+                if value.tzinfo is None:
+                    return value.replace(tzinfo=timezone.utc)
+                return value.astimezone(timezone.utc)
+            if isinstance(value, str):
+                try:
+                    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+                except Exception:
+                    return None
+            try:
+                return datetime.fromtimestamp(float(value), tz=timezone.utc)
+            except Exception:
+                return None
+
+        def _message_text(content: Any) -> str:
+            if not isinstance(content, dict):
+                return ""
+            parts = content.get("parts")
+            if isinstance(parts, list):
+                chunks = [str(part).strip() for part in parts if isinstance(part, str) and part.strip()]
+                if chunks:
+                    return "\n".join(chunks)
+            text = content.get("text")
+            if isinstance(text, str):
+                return text.strip()
+            return ""
+
+        def _extract_messages(mapping: Any, conversation_id: str, fallback_time: Optional[datetime]) -> list[dict]:
+            if not isinstance(mapping, dict):
+                return []
+
+            messages: list[dict] = []
+            for node in mapping.values():
+                if not isinstance(node, dict):
+                    continue
+                message = node.get("message")
+                if not isinstance(message, dict):
+                    continue
+
+                metadata = message.get("metadata")
+                if isinstance(metadata, dict):
+                    if metadata.get("is_visually_hidden_from_conversation") or metadata.get("is_user_system_message"):
+                        continue
+
+                author = message.get("author")
+                role = "user"
+                if isinstance(author, dict) and author.get("role"):
+                    role = str(author.get("role"))
+                elif message.get("role"):
+                    role = str(message.get("role"))
+
+                text = _message_text(message.get("content"))
+                if not text:
+                    continue
+
+                msg_time = _to_datetime(message.get("create_time")) or _to_datetime(node.get("create_time")) or fallback_time
+                msg_id = message.get("id") or node.get("id") or str(uuid.uuid4())
+
+                messages.append(
+                    {
+                        "id": str(msg_id),
+                        "conversation_id": conversation_id,
+                        "role": role,
+                        "content": text,
+                        "created_at": msg_time,
+                    }
+                )
+
+            messages.sort(key=lambda x: x.get("created_at") or datetime.fromtimestamp(0, tz=timezone.utc))
+            return messages
+
+        def _extract_from_chat_messages(chat_messages: Any, conversation_id: str, fallback_time: Optional[datetime]) -> list[dict]:
+            if not isinstance(chat_messages, list):
+                return []
+            messages: list[dict] = []
+            for row in chat_messages:
+                if not isinstance(row, dict):
+                    continue
+                content = row.get("text", row.get("content", ""))
+                if not isinstance(content, str) or not content.strip():
+                    continue
+                role = row.get("sender", row.get("role", "user"))
+                messages.append(
+                    {
+                        "id": str(row.get("id") or uuid.uuid4()),
+                        "conversation_id": conversation_id,
+                        "role": str(role),
+                        "content": content.strip(),
+                        "created_at": _to_datetime(row.get("created_at") or row.get("timestamp")) or fallback_time,
+                    }
+                )
+            messages.sort(key=lambda x: x.get("created_at") or datetime.fromtimestamp(0, tz=timezone.utc))
+            return messages
+
+        def _stable_conversation_id(item: dict[str, Any], mapping: Any, chat_messages: Any) -> str:
+            explicit = item.get("id")
+            if explicit:
+                return str(explicit)
+
+            mapping_ids: list[str] = []
+            if isinstance(mapping, dict):
+                mapping_ids = sorted(str(k) for k in mapping.keys() if k)[:120]
+
+            chat_fingerprint: list[dict[str, str]] = []
+            if isinstance(chat_messages, list):
+                for row in chat_messages[:20]:
+                    if not isinstance(row, dict):
+                        continue
+                    chat_fingerprint.append(
+                        {
+                            "id": str(row.get("id") or ""),
+                            "role": str(row.get("sender") or row.get("role") or ""),
+                            "timestamp": str(row.get("created_at") or row.get("timestamp") or ""),
+                            "content": str(row.get("text") or row.get("content") or "")[:80],
+                        }
+                    )
+
+            payload = {
+                "title": str(item.get("title") or ""),
+                "create_time": str(item.get("create_time") or ""),
+                "update_time": str(item.get("update_time") or ""),
+                "mapping_ids": mapping_ids,
+                "chat_fingerprint": chat_fingerprint,
+            }
+            digest = hashlib.sha1(
+                json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+            ).hexdigest()[:24]
+            return f"chatgpt-{digest}"
+
         try:
             with open(file_path, 'rb') as f:
-                # Root is list of conversations
                 parser = ijson.items(f, 'item')
                 for item in parser:
-                    # Extract fields
-                    # ChatGPT structure varies, but usually:
-                    # title, create_time, mapping (for messages)
-                    
-                    title = item.get("title", "Untitled")
-                    create_time = item.get("create_time")
-                    start_at = datetime.fromtimestamp(create_time) if create_time else None
-                    
-                    # Message count & extraction from "mapping"
-                    mapping = item.get("mapping", {})
-                    # mapping is dict of id -> node.
-                    # Linearize or just count?
-                    # For MVP, maybe just count keys - system ones.
-                    
+                    if not isinstance(item, dict):
+                        continue
+
+                    mapping = item.get("mapping")
+                    chat_messages = item.get("chat_messages")
+                    if not isinstance(mapping, dict) and not isinstance(chat_messages, list):
+                        continue
+
+                    title = item.get("title") or "Untitled"
+                    start_at = _to_datetime(item.get("create_time"))
+                    updated_at = _to_datetime(item.get("update_time"))
+                    conversation_id = _stable_conversation_id(item, mapping, chat_messages)
+                    messages = _extract_messages(mapping or {}, conversation_id, start_at or updated_at)
+                    if not messages:
+                        messages = _extract_from_chat_messages(chat_messages, conversation_id, start_at or updated_at)
+                    if not isinstance(mapping, dict) and not messages:
+                        continue
+
                     yield {
-                        "id": item.get("id"),
+                        "id": conversation_id,
                         "title": title,
                         "source_llm": "chatgpt",
                         "started_at": start_at,
-                        "updated_at": item.get("update_time"),
-                        "message_count": len(mapping),
-                        "chat_messages": [] # Skipping full content for now unless needed
+                        "updated_at": updated_at,
+                        "message_count": len(messages),
+                        "chat_messages": messages,
                     }
         except Exception as e:
-             logger.error(f"Failed to parse ChatGPT conversations: {e}")
-             raise e
+            logger.error(f"Failed to parse ChatGPT conversations: {e}")
+            raise e

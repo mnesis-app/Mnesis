@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Inter:wght@400&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Inter:wght@400;500&display=swap"
         rel="stylesheet">
+    <title>Mnesis</title>
     <style>
         *,
         *::before,
@@ -14,189 +17,340 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --bg: #080808;
+            --text: #f5f3ee;
+            --muted: #6a6a6a;
+            --dot-idle: #1f1f1f;
+            --dot-active: #f5f3ee;
+            --dot-done: #10b981;
+            --dot-error: #f87171;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
         body {
-            background: #0a0a0a;
-            color: #f5f3ee;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, sans-serif;
+            user-select: none;
+            -webkit-app-region: drag;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            font-family: 'Inter', -apple-system, sans-serif;
-            user-select: none;
-            -webkit-app-region: drag;
-            animation: fade-in 400ms ease both;
+            opacity: 1;
+            transition: opacity 280ms ease;
+        }
+
+        body.fade-out {
+            opacity: 0;
         }
 
         @keyframes fade-in {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
+        .center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            animation: fade-in 400ms ease both;
+        }
+
+        /* ── Wordmark ── */
         .wordmark {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .wordmark svg line {
-            stroke-dasharray: 1;
-            stroke-dashoffset: 1;
-            animation: draw 1s ease forwards;
-        }
-
-        @keyframes draw {
-            to {
-                stroke-dashoffset: 0;
-            }
-        }
-
-        .wordmark svg line:nth-child(1) {
-            animation-delay: 0ms;
-        }
-
-        .wordmark svg line:nth-child(2) {
-            animation-delay: 60ms;
-        }
-
-        .wordmark svg line:nth-child(3) {
-            animation-delay: 60ms;
-        }
-
-        .wordmark svg line:nth-child(4) {
-            animation-delay: 120ms;
-        }
-
-        .wordmark svg line:nth-child(5) {
-            animation-delay: 120ms;
-        }
-
-        .wordmark svg line:nth-child(6) {
-            animation-delay: 120ms;
-        }
-
-        .wordmark svg line:nth-child(7) {
-            animation-delay: 180ms;
-        }
-
-        .wordmark svg line:nth-child(8) {
-            animation-delay: 180ms;
-        }
-
-        .wordmark svg line:nth-child(9) {
-            animation-delay: 180ms;
-        }
-
-        .wordmark svg line:nth-child(10) {
-            animation-delay: 180ms;
-        }
-
-        .wordmark svg line:nth-child(n+11) {
-            animation-delay: 240ms;
+            gap: 14px;
+            margin-bottom: 40px;
         }
 
         .wordmark-text {
             font-family: 'Syne', sans-serif;
+            font-size: 52px;
             font-weight: 800;
-            font-size: 38px;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.03em;
             line-height: 1;
-            color: #f5f3ee;
-            animation: fade-in 600ms 200ms ease both;
-            opacity: 0;
+            color: var(--text);
         }
 
-        p {
-            font-size: 11px;
-            color: #444;
-            letter-spacing: 0.02em;
-            animation: fade-in 600ms 400ms ease both;
-            opacity: 0;
+        /* ── Status text ── */
+        .message {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text);
+            letter-spacing: -0.01em;
+            text-align: center;
+            min-height: 22px;
+            margin-bottom: 8px;
+            transition: opacity 180ms ease;
         }
 
-        .loader {
-            width: 120px;
-            height: 1px;
-            background: #1a1a1a;
-            margin-top: 28px;
+        .detail {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            min-height: 18px;
+            margin-bottom: 32px;
+            white-space: nowrap;
             overflow: hidden;
-            animation: fade-in 600ms 500ms ease both;
-            opacity: 0;
+            text-overflow: ellipsis;
+            max-width: 340px;
         }
 
-        .loader-bar {
+        /* ── Step dots ── */
+        .dots {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dot-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--dot-idle);
+            transition: background-color 200ms ease, box-shadow 200ms ease;
+        }
+
+        .dot-label {
+            font-size: 9px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #3a3a3a;
+            transition: color 200ms ease;
+        }
+
+        /* Active dot — breathing pulse */
+        @keyframes breathe {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 243, 238, 0); }
+            50%       { box-shadow: 0 0 0 4px rgba(245, 243, 238, 0.12); }
+        }
+
+        .dot.active {
+            background: var(--dot-active);
+            animation: breathe 2s ease infinite;
+        }
+
+        .dot-item.active .dot-label {
+            color: #b0b0b0;
+        }
+
+        .dot.done {
+            background: var(--dot-done);
+        }
+
+        .dot-item.done .dot-label {
+            color: #3a7a5a;
+        }
+
+        .dot.error {
+            background: var(--dot-error);
+        }
+
+        .dot-item.error .dot-label {
+            color: var(--dot-error);
+        }
+
+        /* Download inline progress label */
+        .dot-item.downloading .dot-label {
+            color: #b0b0b0;
+        }
+
+        /* ── Progress bar — hairline at bottom ── */
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: transparent;
+            overflow: hidden;
+        }
+
+        .progress-fill {
             height: 100%;
-            width: 40%;
-            background: #f5f3ee;
-            animation: slide 2s infinite ease-in-out;
+            width: 0%;
+            background: var(--text);
+            transition: width 300ms ease;
+            opacity: 0.85;
         }
 
-        @keyframes slide {
-            0% {
-                transform: translateX(-100%);
-            }
+        .progress-fill.indeterminate {
+            width: 28%;
+            animation: indeterminate 1.6s ease-in-out infinite;
+        }
 
-            50% {
-                transform: translateX(300%);
-            }
+        @keyframes indeterminate {
+            0%   { transform: translateX(-120%); }
+            65%  { transform: translateX(400%); }
+            100% { transform: translateX(400%); }
+        }
 
-            100% {
-                transform: translateX(300%);
-            }
+        /* Error state text color */
+        body.state-error .message {
+            color: var(--dot-error);
+        }
+
+        /* Ready state — subtle green tint on message */
+        body.state-ready .message {
+            color: var(--dot-done);
         }
     </style>
 </head>
 
 <body>
-    <div class="wordmark">
-        <!-- Palimpseste icon -->
-        <svg width="44" height="44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <line x1="10" y1="16" x2="90" y2="16" stroke="#f5f3ee" stroke-width="2.8" stroke-linecap="round" />
-            <line x1="10" y1="27" x2="54" y2="27" stroke="#f5f3ee" stroke-width="2.8" stroke-linecap="round" />
-            <line x1="60" y1="27" x2="90" y2="27" stroke="#f5f3ee" stroke-width="2.8" stroke-linecap="round" />
-            <line x1="10" y1="38" x2="38" y2="38" stroke="#f5f3ee" stroke-width="2.5" stroke-linecap="round" />
-            <line x1="44" y1="38" x2="68" y2="38" stroke="#f5f3ee" stroke-width="2.5" stroke-linecap="round" />
-            <line x1="74" y1="38" x2="90" y2="38" stroke="#f5f3ee" stroke-width="2.5" stroke-linecap="round" />
-            <line x1="10" y1="49" x2="28" y2="49" stroke="#f5f3ee" stroke-width="2.2" stroke-linecap="round" />
-            <line x1="35" y1="49" x2="52" y2="49" stroke="#f5f3ee" stroke-width="2.2" stroke-linecap="round" />
-            <line x1="59" y1="49" x2="73" y2="49" stroke="#f5f3ee" stroke-width="2.2" stroke-linecap="round" />
-            <line x1="79" y1="49" x2="90" y2="49" stroke="#f5f3ee" stroke-width="2.2" stroke-linecap="round" />
-            <line x1="10" y1="60" x2="22" y2="60" stroke="#f5f3ee" stroke-width="2.0" stroke-linecap="round" />
-            <line x1="29" y1="60" x2="40" y2="60" stroke="#f5f3ee" stroke-width="2.0" stroke-linecap="round" />
-            <line x1="47" y1="60" x2="57" y2="60" stroke="#f5f3ee" stroke-width="2.0" stroke-linecap="round" />
-            <line x1="63" y1="60" x2="72" y2="60" stroke="#f5f3ee" stroke-width="2.0" stroke-linecap="round" />
-            <line x1="78" y1="60" x2="87" y2="60" stroke="#f5f3ee" stroke-width="2.0" stroke-linecap="round" />
-            <line x1="10" y1="71" x2="18" y2="71" stroke="#f5f3ee" stroke-width="1.7" stroke-linecap="round" />
-            <line x1="25" y1="71" x2="32" y2="71" stroke="#f5f3ee" stroke-width="1.7" stroke-linecap="round" />
-            <line x1="40" y1="71" x2="46" y2="71" stroke="#f5f3ee" stroke-width="1.7" stroke-linecap="round" />
-            <line x1="53" y1="71" x2="59" y2="71" stroke="#f5f3ee" stroke-width="1.7" stroke-linecap="round" />
-            <line x1="66" y1="71" x2="72" y2="71" stroke="#f5f3ee" stroke-width="1.7" stroke-linecap="round" />
-            <line x1="78" y1="71" x2="84" y2="71" stroke="#f5f3ee" stroke-width="1.7" stroke-linecap="round" />
-            <line x1="13" y1="82" x2="17" y2="82" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-            <line x1="26" y1="82" x2="30" y2="82" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-            <line x1="40" y1="82" x2="44" y2="82" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-            <line x1="53" y1="82" x2="57" y2="82" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-            <line x1="66" y1="82" x2="70" y2="82" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-            <line x1="79" y1="82" x2="83" y2="82" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-            <line x1="15" y1="93" x2="18" y2="93" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-            <line x1="32" y1="93" x2="35" y2="93" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-            <line x1="52" y1="93" x2="55" y2="93" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-            <line x1="72" y1="93" x2="75" y2="93" stroke="#f5f3ee" stroke-width="1.5" stroke-linecap="round" />
-        </svg>
-        <span class="wordmark-text">mnesis</span>
+    <div class="center">
+        <div class="wordmark">
+            <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true">
+                <line x1="10" y1="16" x2="90" y2="16" stroke="#f5f3ee" stroke-width="2.8" stroke-linecap="round" />
+                <line x1="10" y1="27" x2="54" y2="27" stroke="#f5f3ee" stroke-width="2.8" stroke-linecap="round" />
+                <line x1="60" y1="27" x2="90" y2="27" stroke="#f5f3ee" stroke-width="2.8" stroke-linecap="round" />
+                <line x1="10" y1="38" x2="38" y2="38" stroke="#f5f3ee" stroke-width="2.5" stroke-linecap="round" />
+                <line x1="44" y1="38" x2="68" y2="38" stroke="#f5f3ee" stroke-width="2.5" stroke-linecap="round" />
+                <line x1="74" y1="38" x2="90" y2="38" stroke="#f5f3ee" stroke-width="2.5" stroke-linecap="round" />
+                <line x1="10" y1="49" x2="28" y2="49" stroke="#f5f3ee" stroke-width="2.2" stroke-linecap="round" />
+                <line x1="35" y1="49" x2="52" y2="49" stroke="#f5f3ee" stroke-width="2.2" stroke-linecap="round" />
+                <line x1="59" y1="49" x2="73" y2="49" stroke="#f5f3ee" stroke-width="2.2" stroke-linecap="round" />
+                <line x1="79" y1="49" x2="90" y2="49" stroke="#f5f3ee" stroke-width="2.2" stroke-linecap="round" />
+            </svg>
+            <span class="wordmark-text">mnesis</span>
+        </div>
+
+        <p id="message" class="message">Initializing...</p>
+        <p id="detail" class="detail"></p>
+
+        <div class="dots">
+            <div class="dot-item active" id="dotBackend">
+                <div class="dot active"></div>
+                <span class="dot-label">Service</span>
+            </div>
+            <div class="dot-item" id="dotDownload">
+                <div class="dot"></div>
+                <span class="dot-label">Model</span>
+            </div>
+            <div class="dot-item" id="dotLoad">
+                <div class="dot"></div>
+                <span class="dot-label">Runtime</span>
+            </div>
+        </div>
     </div>
 
-    <p>Starting memory engine...</p>
-
-    <div class="loader">
-        <div class="loader-bar"></div>
+    <div class="progress-bar">
+        <div id="progressFill" class="progress-fill indeterminate"></div>
     </div>
+
+    <script>
+        const message   = document.getElementById('message')
+        const detail    = document.getElementById('detail')
+        const progress  = document.getElementById('progressFill')
+
+        const dotBackend  = document.getElementById('dotBackend')
+        const dotDownload = document.getElementById('dotDownload')
+        const dotLoad     = document.getElementById('dotLoad')
+
+        function setDot(el, state) {
+            const dot = el.querySelector('.dot')
+            el.className = `dot-item ${state}`
+            dot.className = `dot ${state}`
+        }
+
+        function updateDownloadLabel(pct, filename) {
+            const label = dotDownload.querySelector('.dot-label')
+            if (pct !== null && pct >= 0) {
+                label.textContent = filename ? `${pct}%` : `${pct}%`
+            } else {
+                label.textContent = 'Model'
+            }
+        }
+
+        function applyStatus(payload) {
+            const stage   = String((payload && payload.stage)   || '').trim().toLowerCase()
+            const msg     = String((payload && payload.message) || '').trim()
+            const det     = String((payload && payload.detail)  || '').trim()
+            const pct     = payload ? Number(payload.progress) : NaN
+            const hasProgress = Number.isFinite(pct) && pct >= 0
+
+            // Update text
+            if (msg) message.textContent = msg
+            detail.textContent = det || ''
+
+            // Progress bar
+            if (hasProgress) {
+                const safe = Math.max(0, Math.min(100, Math.round(pct)))
+                progress.classList.remove('indeterminate')
+                progress.style.width = `${safe}%`
+            } else {
+                progress.classList.add('indeterminate')
+                progress.style.width = '28%'
+            }
+
+            // Body state class for color theming
+            document.body.className = stage ? `state-${stage}` : ''
+
+            // Dot states
+            if (stage === 'backend' || stage === 'connecting') {
+                setDot(dotBackend, 'active')
+                setDot(dotDownload, '')
+                setDot(dotLoad, '')
+                updateDownloadLabel(null, null)
+                return
+            }
+            if (stage === 'downloading') {
+                setDot(dotBackend, 'done')
+                setDot(dotDownload, 'active')
+                setDot(dotLoad, '')
+                const safePct = hasProgress ? Math.round(pct) : null
+                updateDownloadLabel(safePct, det)
+                return
+            }
+            if (stage === 'loading') {
+                setDot(dotBackend, 'done')
+                setDot(dotDownload, 'done')
+                setDot(dotLoad, 'active')
+                updateDownloadLabel(null, null)
+                return
+            }
+            if (stage === 'ready') {
+                setDot(dotBackend, 'done')
+                setDot(dotDownload, 'done')
+                setDot(dotLoad, 'done')
+                updateDownloadLabel(null, null)
+                return
+            }
+            if (stage === 'error') {
+                setDot(dotBackend, 'error')
+                setDot(dotDownload, 'error')
+                setDot(dotLoad, 'error')
+                updateDownloadLabel(null, null)
+            }
+        }
+
+        if (window.splashAPI) {
+            if (typeof window.splashAPI.onStatus === 'function') {
+                window.splashAPI.onStatus(applyStatus)
+            }
+            if (typeof window.splashAPI.onClose === 'function') {
+                window.splashAPI.onClose(() => {
+                    document.body.classList.add('fade-out')
+                })
+            }
+        }
+    </script>
 </body>
 
 </html>

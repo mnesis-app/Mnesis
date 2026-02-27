@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useAppStore } from '../lib/store'
-import { useMemories, useUpdateMemory, useDeleteMemory } from '../lib/queries'
-import { Loader2, Save, Trash2, X } from 'lucide-react'
+import { useMemory, useUpdateMemory, useDeleteMemory, useSetMemoryStatus } from '../lib/queries'
+import { Loader2, Save, Trash2, X, Network, Check, Activity } from 'lucide-react'
 import { ConfirmDialog } from './ui/ConfirmDialog'
+import { MemoryGraph } from './MemoryGraph'
+import { MemoryHealthPanel } from './MemoryHealthPanel'
 
 const metaLabel: React.CSSProperties = {
     fontSize: '9px', fontWeight: 800, letterSpacing: '0.25em',
@@ -10,22 +12,28 @@ const metaLabel: React.CSSProperties = {
 }
 
 export function MemoryDetail() {
-    const { selectedMemoryId, setSelectedMemory } = useAppStore()
-    const { data: memories } = useMemories()
+    const { selectedMemoryId, setSelectedMemory, setCurrentView } = useAppStore()
+    const { data: memory, isLoading } = useMemory(selectedMemoryId)
     const updateMemory = useUpdateMemory()
     const deleteMemory = useDeleteMemory()
+    const setMemoryStatus = useSetMemoryStatus()
 
     const [editContent, setEditContent] = useState('')
     const [isEditing, setIsEditing] = useState(false)
     const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
-
-    const memory = memories?.find((m: any) => m.id === selectedMemoryId)
+    const [showGraph, setShowGraph] = useState(true)
+    const [showHealth, setShowHealth] = useState(false)
 
     useEffect(() => {
         if (memory) { setEditContent(memory.content); setIsEditing(false) }
-    }, [memory])
+    }, [memory?.id, memory?.content])
 
     if (!selectedMemoryId) return null
+    if (isLoading) return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#333' }} />
+        </div>
+    )
     if (!memory) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#333', fontSize: '12px' }}>
             Memory not found
@@ -42,6 +50,24 @@ export function MemoryDetail() {
         await deleteMemory.mutateAsync(memory.id)
         setSelectedMemory(null)
         setShowArchiveConfirm(false)
+    }
+
+    const handleApprove = async () => {
+        await setMemoryStatus.mutateAsync({
+            id: memory.id,
+            status: 'active',
+            source_llm: 'review',
+            review_note: 'Approved from memory detail',
+        })
+    }
+
+    const handleReject = async () => {
+        await setMemoryStatus.mutateAsync({
+            id: memory.id,
+            status: 'rejected',
+            source_llm: 'review',
+            review_note: 'Rejected from memory detail',
+        })
     }
 
     return (
@@ -71,6 +97,42 @@ export function MemoryDetail() {
                     </span>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
+                    {memory.status === 'pending_review' && (
+                        <>
+                            <button
+                                onClick={handleApprove}
+                                title="Approve"
+                                disabled={setMemoryStatus.isPending}
+                                style={{
+                                    padding: '6px',
+                                    background: '#0d1411',
+                                    border: '1px solid #1f3a2f',
+                                    borderRadius: '4px',
+                                    cursor: setMemoryStatus.isPending ? 'wait' : 'pointer',
+                                    color: '#9de6cc',
+                                    transition: 'all 150ms ease',
+                                }}
+                            >
+                                {setMemoryStatus.isPending ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={16} />}
+                            </button>
+                            <button
+                                onClick={handleReject}
+                                title="Reject"
+                                disabled={setMemoryStatus.isPending}
+                                style={{
+                                    padding: '6px',
+                                    background: '#150c0c',
+                                    border: '1px solid #3a1f1f',
+                                    borderRadius: '4px',
+                                    cursor: setMemoryStatus.isPending ? 'wait' : 'pointer',
+                                    color: '#fca5a5',
+                                    transition: 'all 150ms ease',
+                                }}
+                            >
+                                <X size={16} />
+                            </button>
+                        </>
+                    )}
                     <button
                         onClick={() => setShowArchiveConfirm(true)}
                         title="Archive"
@@ -152,6 +214,34 @@ export function MemoryDetail() {
             </div>
 
             {/* Meta */}
+            {memory.suggestion_reason && (
+                <div style={{
+                    marginTop: '12px',
+                    background: '#080808',
+                    border: '1px solid #1a1a1a',
+                    borderRadius: '4px',
+                    padding: '12px 14px',
+                }}>
+                    <span style={metaLabel}>Suggestion Reason</span>
+                    <p style={{ margin: 0, color: '#8b8b8b', fontSize: '12px', lineHeight: 1.55 }}>
+                        {memory.suggestion_reason}
+                    </p>
+                </div>
+            )}
+            {memory.review_note && (
+                <div style={{
+                    marginTop: '8px',
+                    background: '#080808',
+                    border: '1px solid #1a1a1a',
+                    borderRadius: '4px',
+                    padding: '12px 14px',
+                }}>
+                    <span style={metaLabel}>Review Note</span>
+                    <p style={{ margin: 0, color: '#8b8b8b', fontSize: '12px', lineHeight: 1.55 }}>
+                        {memory.review_note}
+                    </p>
+                </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', marginTop: '12px' }}>
                 <div style={{ background: '#080808', border: '1px solid #1a1a1a', borderRadius: '4px', padding: '14px 16px' }}>
                     <span style={metaLabel}>Confidence</span>
@@ -165,6 +255,93 @@ export function MemoryDetail() {
                         {memory.level}
                     </span>
                 </div>
+            </div>
+
+            {/* Health Panel */}
+            <div style={{ marginTop: '12px' }}>
+                <button
+                    onClick={() => setShowHealth(v => !v)}
+                    style={{
+                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        border: '1px solid #1a1a1a', background: '#080808', color: '#a1a1aa',
+                        borderRadius: '4px', padding: '10px 12px', fontSize: '10px', fontWeight: 700,
+                        letterSpacing: '0.14em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit',
+                        transition: 'border-color 150ms ease',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = '#1a1a1a')}
+                >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Activity size={14} />
+                        Memory Health
+                    </span>
+                    <span style={{ fontSize: '9px', opacity: 0.5 }}>{showHealth ? '▲' : '▼'}</span>
+                </button>
+                {showHealth && <MemoryHealthPanel memoryId={memory.id} />}
+            </div>
+
+            {/* Graph Panel */}
+            <div style={{ marginTop: '12px' }}>
+                <div style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    border: '1px solid #1a1a1a',
+                    background: '#080808',
+                    color: '#a1a1aa',
+                    borderRadius: '4px',
+                    padding: '10px 12px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Network size={14} />
+                        Memory Graph
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setCurrentView('graph') }}
+                            style={{
+                                border: '1px solid #27272a',
+                                background: '#09090b',
+                                color: '#a1a1aa',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                fontSize: '9px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.08em',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Open Graph
+                        </button>
+                        <button
+                            onClick={() => setShowGraph((v) => !v)}
+                            style={{
+                                border: '1px solid #27272a',
+                                background: '#09090b',
+                                color: '#a1a1aa',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                fontSize: '9px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.08em',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            {showGraph ? 'Hide' : 'Show'}
+                        </button>
+                    </span>
+                </div>
+
+                {showGraph && (
+                    <div style={{ marginTop: '8px' }}>
+                        <MemoryGraph memoryId={memory.id} />
+                    </div>
+                )}
             </div>
         </div>
     )
