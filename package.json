@@ -72,24 +72,29 @@
   "build": {
     "appId": "com.mnesis.app",
     "productName": "Mnesis",
+    "artifactName": "Mnesis-${version}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.productivity",
-      "icon": "assets/icons/mnesis.icns"
+      "icon": "assets/icons/mnesis.icns",
+      "target": ["dmg", "zip"]
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icons/mnesis.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "Mnesis-Setup-${version}.exe"
     },
     "files": [
       "electron/**/*"
     ],
     "extraResources": [
       {
-        "from": "backend/dist/mnesis-backend",
-        "to": "backend/mnesis-backend"
-      },
-      {
-        "from": "backend/dist/mcp-stdio-bridge",
-        "to": "backend/mcp-stdio-bridge"
+        "from": "backend/dist/",
+        "to": "backend/",
+        "filter": ["mnesis-backend*", "mcp-stdio-bridge*"]
       },
       {
         "from": "dist",
