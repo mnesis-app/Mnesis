@@ -78,7 +78,7 @@ async function spawnBackend() {
     // Backend executable is at resources/backend/mnesis-backend
     // package.json extraResources copies backend/dist/* -> resources/backend/*
     const backendExe = path.join(
-        process.resourcesPath, 'backend',
+        process.resourcesPath, 'backend', 'mnesis-backend',
         process.platform === 'win32' ? 'mnesis-backend.exe' : 'mnesis-backend'
     )
 
@@ -95,7 +95,7 @@ async function spawnBackend() {
         MNESIS_MCP_PORT: MCP_PORT.toString(),
         MNESIS_BRIDGE_PATH: path.join(
             process.resourcesPath,
-            'backend',
+            'backend', 'mcp-stdio-bridge',
             process.platform === 'win32' ? 'mcp-stdio-bridge.exe' : 'mcp-stdio-bridge'
         )
     }
@@ -130,7 +130,7 @@ async function spawnBackend() {
                     : ''
                 dialog.showErrorBox(
                     'Mnesis Backend Error',
-                    `The memory service crashed and could not be restarted.${portHint}\n\nCheck logs at:\n${getLogPath()}`
+                    `The memory service crashed and could not be restarted.${portHint}\n\nExit code: ${code ?? 'unknown'}\n\nCheck logs at:\n${getLogPath()}`
                 )
             })
         }
@@ -249,7 +249,7 @@ async function waitForBackend(splash = null) {
             publishSplashStatus(splash, {
                 stage: 'connecting',
                 message: 'Waiting for backend process...',
-                detail: `Attempt ${i + 1}/${maxAttempts}`,
+                detail: `Starting up... ${Math.round((i + 1) * HEALTH_POLL_INTERVAL_MS / 1000)}s`,
                 progress: null
             })
         }

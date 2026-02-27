@@ -27,8 +27,8 @@
     "clean:tmp": "python3 scripts/clean_workspace_tmp.py",
     "dev": "npm run clean:tmp && concurrently \"npm:dev:backend:reload\" \"npm:dev:vite\" \"npm:dev:electron\"",
     "build:ui": "tsc && vite build",
-    "build:backend": "pyinstaller --clean --name mnesis-backend --onefile --paths . --distpath backend/dist run.py",
-    "build:bridge": "pyinstaller --clean --name mcp-stdio-bridge --onefile --distpath backend/dist backend/mcp_stdio_bridge.py",
+    "build:backend": "pyinstaller --clean --name mnesis-backend --paths . --distpath backend/dist run.py",
+    "build:bridge": "pyinstaller --clean --name mcp-stdio-bridge --distpath backend/dist backend/mcp_stdio_bridge.py",
     "build": "npm run build:ui && npm run build:backend && npm run build:bridge && electron-builder",
     "test": "vitest run",
     "test:backend:smoke": "python3 scripts/backend_smoke_checks.py",
@@ -92,9 +92,14 @@
     ],
     "extraResources": [
       {
-        "from": "backend/dist/",
-        "to": "backend/",
-        "filter": ["mnesis-backend*", "mcp-stdio-bridge*"]
+        "from": "backend/dist/mnesis-backend",
+        "to": "backend/mnesis-backend",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "backend/dist/mcp-stdio-bridge",
+        "to": "backend/mcp-stdio-bridge",
+        "filter": ["**/*"]
       },
       {
         "from": "dist",
