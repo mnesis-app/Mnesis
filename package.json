@@ -1,6 +1,6 @@
 {
   "name": "mnesis",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Universal memory layer for LLMs",
   "homepage": "https://github.com/mnesis-app/Mnesis#readme",
   "bugs": {

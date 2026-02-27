@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="License: AGPL-3.0" /></a>
-  <a href="https://github.com/mnesis-app/Mnesis/releases"><img src="https://img.shields.io/badge/version-0.1.2-green.svg" alt="Version 0.1.2" /></a>
+  <a href="https://github.com/mnesis-app/Mnesis/releases"><img src="https://img.shields.io/badge/version-0.1.3-green.svg" alt="Version 0.1.3" /></a>
   <a href="https://github.com/mnesis-app/Mnesis/actions"><img src="https://github.com/mnesis-app/Mnesis/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 

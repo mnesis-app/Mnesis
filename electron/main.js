@@ -86,6 +86,17 @@ async function spawnBackend() {
         throw new Error(`Backend executable not found: ${backendExe}`)
     }
 
+    // Ensure executables have +x bit set — electron-builder does not reliably preserve it on macOS.
+    // This must happen BEFORE spawning the backend, because the backend's config_watcher checks
+    // os.access(bridge, X_OK) to decide which path to write into claude_desktop_config.json.
+    if (process.platform !== 'win32') {
+        const bridgeExe = path.join(
+            process.resourcesPath, 'backend', 'mcp-stdio-bridge', 'mcp-stdio-bridge'
+        )
+        try { fs.chmodSync(backendExe, 0o755) } catch (_) {}
+        try { if (fs.existsSync(bridgeExe)) fs.chmodSync(bridgeExe, 0o755) } catch (_) {}
+    }
+
     const logFile = getLogPath()
     const logStream = fs.createWriteStream(logFile, { flags: 'a' })
     logStream.on('error', (err) => console.error('[main] Log stream error:', err.message))
@@ -97,6 +108,9 @@ async function spawnBackend() {
         fs.appendFileSync(logFile, `  Exists: ${fs.existsSync(backendExe)}\n`)
         fs.appendFileSync(logFile, `  Platform: ${process.platform}\n`)
         fs.appendFileSync(logFile, `  CWD: ${process.resourcesPath}\n`)
+        const bridgeExeForLog = path.join(process.resourcesPath, 'backend', 'mcp-stdio-bridge', 'mcp-stdio-bridge')
+        fs.appendFileSync(logFile, `  BridgeExe: ${bridgeExeForLog}\n`)
+        fs.appendFileSync(logFile, `  BridgeExists: ${fs.existsSync(bridgeExeForLog)}\n`)
     } catch (_) {}
 
     const env = {

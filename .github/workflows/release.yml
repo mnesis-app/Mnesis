@@ -39,6 +39,9 @@ jobs:
       - name: Build MCP bridge (PyInstaller)
         run: npm run build:bridge
 
+      - name: Ensure bridge is executable
+        run: chmod +x backend/dist/mcp-stdio-bridge/mcp-stdio-bridge || true
+
       - name: Package & publish (electron-builder)
         run: npx electron-builder --mac --arm64 --publish always
         env:
