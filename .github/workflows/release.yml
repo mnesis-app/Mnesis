@@ -44,41 +44,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── macOS x64 (Intel) ─────────────────────────────────────────────
-  mac-x64:
-    name: macOS (Intel)
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          npm ci
-          pip install -r requirements.txt
-
-      - name: Build UI
-        run: npm run build:ui
-
-      - name: Build backend (PyInstaller)
-        run: npm run build:backend
-
-      - name: Build MCP bridge (PyInstaller)
-        run: npm run build:bridge
-
-      - name: Package & publish (electron-builder)
-        run: npx electron-builder --mac --x64 --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   # ── Windows x64 ───────────────────────────────────────────────────
   windows:
     name: Windows (x64)
@@ -111,5 +76,16 @@ jobs:
 
       - name: Package & publish (electron-builder)
         run: npx electron-builder --win --x64 --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Publish draft → public once all builds done ───────────────────
+  publish:
+    name: Publish release
+    needs: [mac-arm64, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish draft release
+        run: gh release edit ${{ github.ref_name }} --draft=false --repo mnesis-app/Mnesis
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
