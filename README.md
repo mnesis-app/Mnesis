@@ -20,7 +20,13 @@ Use ChatGPT, Claude, Cursor, and other MCP-capable tools with one shared memory 
 
 Grab the latest release for your platform on the [**Releases page**](https://github.com/mnesis-app/Mnesis/releases).
 
-> **Note (V1):** macOS binaries are not yet notarized. macOS will show a Gatekeeper warning on first launch — right-click → Open to proceed. Windows will show a SmartScreen prompt for the same reason.
+> **macOS — first launch:** Binaries are not yet notarized (Apple Developer Program required). macOS will show *"damaged and can't be opened"*. Fix with one command:
+> ```bash
+> xattr -cr /Applications/Mnesis.app
+> ```
+> Then launch normally. Alternatively: System Settings → Privacy & Security → **Open Anyway**.
+>
+> **Windows:** SmartScreen may warn on first launch — click *More info → Run anyway*.
 
 ---
 
