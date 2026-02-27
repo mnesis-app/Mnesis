@@ -54,7 +54,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Configurable analysis window and scheduling
 
 #### Electron shell
-- macOS (Apple Silicon + Intel) and Windows packaging
+- macOS (Apple Silicon) and Windows packaging
 - Auto-update via electron-updater + GitHub Releases
 - System tray with conflict count badge
 - Splash screen with startup progress

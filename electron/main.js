@@ -88,6 +88,16 @@ async function spawnBackend() {
 
     const logFile = getLogPath()
     const logStream = fs.createWriteStream(logFile, { flags: 'a' })
+    logStream.on('error', (err) => console.error('[main] Log stream error:', err.message))
+
+    // Write spawn diagnostics from Electron (captured even if backend produces no output)
+    try {
+        fs.appendFileSync(logFile, `\n[${new Date().toISOString()}] === Mnesis backend spawn ===\n`)
+        fs.appendFileSync(logFile, `  Exe: ${backendExe}\n`)
+        fs.appendFileSync(logFile, `  Exists: ${fs.existsSync(backendExe)}\n`)
+        fs.appendFileSync(logFile, `  Platform: ${process.platform}\n`)
+        fs.appendFileSync(logFile, `  CWD: ${process.resourcesPath}\n`)
+    } catch (_) {}
 
     const env = {
         ...process.env,
@@ -116,6 +126,10 @@ async function spawnBackend() {
     proc.on('exit', (code, signal) => {
         backendProcess = null
         console.log(`Backend exited: code=${code} signal=${signal}`)
+        // Write exit code to log file — visible even when backend crashes before producing output
+        try {
+            fs.appendFileSync(logFile, `[${new Date().toISOString()}] Backend exited: code=${code}, signal=${signal}\n`)
+        } catch (_) {}
 
         // Auto-restart up to MAX_RESTART_ATTEMPTS times
         if (code !== 0 && code !== null && restartAttempts < MAX_RESTART_ATTEMPTS) {
@@ -128,9 +142,12 @@ async function spawnBackend() {
                 const portHint = !available
                     ? `\n\nPort ${REST_PORT} is in use by another process.\nQuit any running Mnesis dev server (npm run dev) or other app on that port.`
                     : ''
+                const defenderHint = process.platform === 'win32'
+                    ? '\n\nWindows: check Windows Security → Protection history for blocked files.'
+                    : ''
                 dialog.showErrorBox(
                     'Mnesis Backend Error',
-                    `The memory service crashed and could not be restarted.${portHint}\n\nExit code: ${code ?? 'unknown'}\n\nCheck logs at:\n${getLogPath()}`
+                    `The memory service crashed and could not be restarted.${portHint}${defenderHint}\n\nExit code: ${code ?? 'unknown'}\n\nCheck logs at:\n${getLogPath()}`
                 )
             })
         }
@@ -371,17 +388,24 @@ function setupAutoUpdater(win) {
     })
 
     autoUpdater.on('update-downloaded', (info) => {
+        const isMac = process.platform === 'darwin'
         const choice = dialog.showMessageBoxSync(win, {
             type: 'info',
             title: 'Update ready — Mnesis',
             message: `Version ${info.version} is ready to install.`,
-            detail: 'Click "Restart now" to apply the update, or it will be installed automatically on next launch.',
-            buttons: ['Restart now', 'Later'],
+            detail: isMac
+                ? 'Download the new version from GitHub Releases and replace the app. It will also update automatically on next launch.'
+                : 'Click "Restart now" to apply the update, or it will be installed automatically on next launch.',
+            buttons: isMac ? ['Download update', 'Later'] : ['Restart now', 'Later'],
             defaultId: 0,
             cancelId: 1,
         })
         if (choice === 0) {
-            autoUpdater.quitAndInstall(false /* isSilent */, true /* isForceRunAfter */)
+            if (isMac) {
+                shell.openExternal('https://github.com/mnesis-app/Mnesis/releases/latest')
+            } else {
+                autoUpdater.quitAndInstall(false /* isSilent */, true /* isForceRunAfter */)
+            }
         }
     })
 

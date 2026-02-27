@@ -1,6 +1,6 @@
 {
   "name": "mnesis",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Universal memory layer for LLMs",
   "homepage": "https://github.com/mnesis-app/Mnesis#readme",
   "bugs": {
@@ -12,7 +12,14 @@
   },
   "author": "Julien Mezan <julien@mnesis.app>",
   "license": "AGPL-3.0-only",
-  "keywords": ["memory", "llm", "mcp", "ai", "local-first", "electron"],
+  "keywords": [
+    "memory",
+    "llm",
+    "mcp",
+    "ai",
+    "local-first",
+    "electron"
+  ],
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
@@ -76,7 +83,10 @@
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "assets/icons/mnesis.icns",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "target": "nsis",
@@ -94,12 +104,16 @@
       {
         "from": "backend/dist/mnesis-backend",
         "to": "backend/mnesis-backend",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "backend/dist/mcp-stdio-bridge",
         "to": "backend/mcp-stdio-bridge",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "dist",
