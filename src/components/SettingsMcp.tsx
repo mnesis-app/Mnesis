@@ -1,6 +1,6 @@
 import { Check, Copy, RefreshCw, Shield } from 'lucide-react'
 import { useState } from 'react'
-import { api } from '../lib/api'
+import { api, getApiBase } from '../lib/api'
 import { useConfig, useSnapshotToken } from '../lib/queries'
 import {
     ActionButton,
@@ -29,10 +29,8 @@ export function SettingsMcp() {
     const configuredClientsCount = mcpConfiguredClients.length
     const mcpAllDetectedConfigured = detectedClientsCount > 0 && configuredClientsCount >= detectedClientsCount
 
-    const restPort = (typeof window !== 'undefined' && (window as any)?.electronAPI?.getRestPort)
-        ? Number((window as any).electronAPI.getRestPort() || 7860)
-        : 7860
-    const mcpBaseUrl = `http://127.0.0.1:${restPort}`
+    const mcpBaseUrl = getApiBase()
+    const mcpPort = (() => { try { return new URL(mcpBaseUrl).port || '7860' } catch { return '7860' } })()
     const mcpSseUrl = `${mcpBaseUrl}/mcp/sse`
     const mcpBridgeApiKey = String(snapshotTokenData?.token || (config as any)?.snapshot_read_token || '').trim() || '<YOUR_MCP_KEY>'
     const mcpBridgeSnippet = `{
@@ -47,7 +45,7 @@ export function SettingsMcp() {
   }
 }`
     const mcpTunnelSnippet = `# Example (advanced, unsupported)
-ngrok http ${restPort}
+ngrok http ${mcpPort}
 # Then use https://<your-subdomain>.ngrok.app/mcp/sse`
 
     const handleRunMcpAutoconfig = async () => {

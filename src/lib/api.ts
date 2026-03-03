@@ -1,15 +1,15 @@
 // Resolve the API base URL dynamically:
 // - In Electron (production): use the dynamically-selected port via contextBridge
-// - In browser dev (Vite only): fall back to 7860
-export function getBaseUrl(): string {
+// - In browser/web mode: use VITE_API_BASE_URL env var, or fall back to 7860
+export function getApiBase(): string {
     if (typeof window !== 'undefined' && (window as any).electronAPI?.getRestPort) {
         const port = (window as any).electronAPI.getRestPort()
         return `http://127.0.0.1:${port}`
     }
-    return 'http://127.0.0.1:7860'
+    return import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:7860'
 }
 
-const BASE_URL = getBaseUrl()
+const BASE_URL = getApiBase()
 const API_BASE = `${BASE_URL}/api/v1`
 
 const MNESIS_CLIENT_HEADER = 'X-Mnesis-Client'
