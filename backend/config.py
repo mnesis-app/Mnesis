@@ -186,7 +186,7 @@ DEFAULT_CONFIG = {
     },
     "conversation_analysis": {
         "enabled": True,
-        "require_llm_configured": True,
+        "require_llm_configured": False,  # heuristic fallback when no LLM is running
         "interval_minutes": 20,
         "provider": "auto",
         "model": "",
