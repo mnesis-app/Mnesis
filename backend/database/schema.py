@@ -7,6 +7,8 @@ EMBEDDING_DIM = 384
 
 class Memory(LanceModel):
     id: str
+    workspace_id: str = 'default'
+    user_id: str = 'local'
     content: str
     level: str
     category: str
@@ -69,6 +71,8 @@ class ClientRuntimeMetric(LanceModel):
 
 class Conversation(LanceModel):
     id: str
+    workspace_id: str = 'default'
+    user_id: str = 'local'
     title: str
     source_llm: str
     started_at: datetime
@@ -83,6 +87,7 @@ class Conversation(LanceModel):
 
 class Message(LanceModel):
     id: str
+    workspace_id: str = 'default'
     conversation_id: str
     role: str
     content: str
@@ -125,6 +130,7 @@ class ContextRouteLog(LanceModel):
 
 class MemoryGraphEdge(LanceModel):
     id: str
+    workspace_id: str = 'default'
     source_memory_id: str
     target_memory_id: str
     edge_type: str  # BELONGS_TO | CONTRADICTS | REINFORCES | PRECEDES | DEPENDS_ON | INVOLVES_PERSON
