@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { ArrowUp, Loader2, MemoryStick, Sparkles } from 'lucide-react'
-import { getBaseUrl } from '../lib/api'
+import { getApiBase } from '../lib/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ async function streamChat(
     onDone: () => void,
     signal: AbortSignal,
 ) {
-    const url = `${getBaseUrl()}/api/v1/chat`
+    const url = `${getApiBase()}/api/v1/chat`
     const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Mnesis-Client': 'mnesis-desktop' },
