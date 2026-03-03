@@ -1,3 +1,5 @@
+import logging
+
 from mcp.server.fastmcp import FastMCP
 from backend.memory.core import (
     create_memory,
@@ -12,6 +14,8 @@ from backend.memory.graph_layer import memory_graph_search as graph_search
 from typing import List, Optional, Any
 from datetime import datetime, timezone
 import re
+
+logger = logging.getLogger("mnesis.mcp")
 
 from backend.auth import token_scope_allowed
 
@@ -217,7 +221,8 @@ async def memory_list(
         )
         results.sort(key=lambda x: x['importance_score'], reverse=True)
         results = results[offset:offset + limit]
-    except Exception:
+    except Exception as _e:
+        logger.warning("memory_list DB query failed: %s", _e)
         results = []
 
     # Strip vector, truncate content to 100 chars
@@ -359,7 +364,7 @@ async def conversation_search(query: str, limit: int = 5, source_llm: Optional[s
             for _, c in scored[:limit]
         ]
     except Exception as e:
-        pass
+        logger.warning("conversation_search failed: %s", e)
 
     return results
 
@@ -395,7 +400,8 @@ async def conversation_list(source_llm: Optional[str] = None, limit: int = 20, o
             }
             for c in results
         ]
-    except Exception:
+    except Exception as _e:
+        logger.warning("conversation_list DB query failed: %s", _e)
         return []
 
 
