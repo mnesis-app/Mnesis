@@ -69,6 +69,15 @@ def get_db():
     return _db
 
 
+def get_db_dep():
+    """FastAPI dependency: inject the LanceDB connection.
+
+    Routers must use ``Depends(get_db_dep)`` instead of calling ``get_db()``
+    directly.  This keeps DB access injectable and mockable in tests.
+    """
+    return get_db()
+
+
 def _safe_create_table(db, name: str, schema):
     """
     Create table idempotently.

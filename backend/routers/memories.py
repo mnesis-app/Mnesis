@@ -4,12 +4,12 @@ import math
 import re
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from typing import Annotated
 
-from backend.database.client import get_db
 from backend.memory.core import create_memory, get_snapshot, search_memories, set_memory_status, set_memory_status_bulk
+from backend.repositories.lancedb import LanceDBMemoryRepository, get_memory_repo
 
 router = APIRouter(prefix="/api/v1/memories", tags=["memories"])
 logger = logging.getLogger(__name__)
@@ -121,6 +121,7 @@ async def list_memories(
     limit: int = 50,
     offset: int = 0,
     status: Optional[str] = None,
+    repo: LanceDBMemoryRepository = Depends(get_memory_repo),
 ):
     safe_limit = _sanitize_limit(limit, default=50, maximum=500)
     safe_offset = max(0, int(offset))
@@ -135,11 +136,9 @@ async def list_memories(
         results = await search_memories(query, safe_limit + safe_offset)
         return results[safe_offset : safe_offset + safe_limit]
 
-    db = get_db()
-    if "memories" not in db.table_names():
+    if not repo.table_exists():
         return []
 
-    tbl = db.open_table("memories")
     if normalized_status:
         # normalized_status is already validated against the allowed enum above.
         where_clause = f"status = '{normalized_status}'"
@@ -151,7 +150,7 @@ async def list_memories(
     fetch_limit = safe_limit + safe_offset
     if query:
         fetch_limit = min(5000, max(fetch_limit * 8, 600))
-    rows = tbl.search().where(where_clause).limit(fetch_limit).to_list()
+    rows = await repo.list(where=where_clause, limit=fetch_limit)
     rows.sort(
         key=lambda x: (_to_dt(x.get("updated_at")), _to_dt(x.get("created_at"))),
         reverse=True,
@@ -245,16 +244,18 @@ async def update_memory_status_bulk_endpoint(payload: MemoryBulkStatusUpdate):
 
 
 @router.patch("/{memory_id}/scores")
-async def update_memory_scores(memory_id: str, payload: MemoryScoresUpdate):
+async def update_memory_scores(
+    memory_id: str,
+    payload: MemoryScoresUpdate,
+    repo: LanceDBMemoryRepository = Depends(get_memory_repo),
+):
     """Adjust importance_score and/or confidence_score without touching content."""
-    db = get_db()
-    if "memories" not in db.table_names():
+    safe_id = _validate_memory_id(memory_id)
+    if not repo.table_exists():
         raise HTTPException(status_code=404, detail="Memory not found")
 
-    tbl = db.open_table("memories")
-    safe_id = _validate_memory_id(memory_id)
-    rows = tbl.search().where(f"id = '{safe_id}'").limit(1).to_list()
-    if not rows or rows[0].get("status") == "archived":
+    existing = await repo.get(safe_id)
+    if existing is None:
         raise HTTPException(status_code=404, detail="Memory not found")
 
     try:
@@ -263,27 +264,16 @@ async def update_memory_scores(memory_id: str, payload: MemoryScoresUpdate):
             updates["importance_score"] = float(max(0.0, min(1.0, payload.importance_score)))
         if payload.confidence_score is not None:
             updates["confidence_score"] = float(max(0.0, min(1.0, payload.confidence_score)))
-        tbl.update(where=f"id = '{safe_id}'", values=updates)
+        repo.update_scores(safe_id, updates)
         return {"action": "updated", "id": safe_id, **updates}
     except Exception as e:
         raise _internal_error("Failed to update memory scores.", e)
 
 
 @router.get("/stats")
-async def get_stats():
-    db = get_db()
+async def get_stats(repo: LanceDBMemoryRepository = Depends(get_memory_repo)):
     try:
-        if "memories" not in db.table_names():
-            return {"total_memories": 0, "active": 0}
-
-        tbl = db.open_table("memories")
-        active_memories = tbl.search().where("status != 'archived'").limit(200000).to_list()
-        total = len(active_memories)
-
-        return {
-            "total_memories": total,
-            "active": total,
-        }
+        return repo.get_stats()
     except Exception:
         return {"total_memories": 0, "active": 0}
 
@@ -325,19 +315,16 @@ async def get_graph_overview(
 
 
 @router.get("/{memory_id}/health")
-async def get_memory_health(memory_id: str):
-    db = get_db()
-    if "memories" not in db.table_names():
-        raise HTTPException(status_code=404, detail="Memory not found")
-
-    tbl = db.open_table("memories")
+async def get_memory_health(
+    memory_id: str,
+    repo: LanceDBMemoryRepository = Depends(get_memory_repo),
+):
     safe_id = _validate_memory_id(memory_id)
-    rows = tbl.search().where(f"id = '{safe_id}'").limit(1).to_list()
-    if not rows:
+    if not repo.table_exists():
         raise HTTPException(status_code=404, detail="Memory not found")
 
-    m = rows[0]
-    if m.get("status") == "archived":
+    m = await repo.get(safe_id)
+    if m is None:
         raise HTTPException(status_code=404, detail="Memory not found")
 
     importance = float(m.get("importance_score") or 0.5)
@@ -396,35 +383,33 @@ async def get_memory_graph(memory_id: str, depth: int = 2):
 
 
 @router.get("/{memory_id}")
-async def get_memory_endpoint(memory_id: str):
-    db = get_db()
-    if "memories" not in db.table_names():
-        raise HTTPException(status_code=404, detail="Memory not found")
-
-    tbl = db.open_table("memories")
+async def get_memory_endpoint(
+    memory_id: str,
+    repo: LanceDBMemoryRepository = Depends(get_memory_repo),
+):
     safe_id = _validate_memory_id(memory_id)
-    rows = tbl.search().where(f"id = '{safe_id}'").limit(1).to_list()
-    if not rows:
+    if not repo.table_exists():
         raise HTTPException(status_code=404, detail="Memory not found")
 
-    memory = rows[0]
-    if memory.get("status") == "archived":
+    memory = await repo.get(safe_id)
+    if memory is None:
         raise HTTPException(status_code=404, detail="Memory not found")
     return _serialize_memory(memory)
 
 
 @router.delete("/{memory_id}")
-async def delete_memory_endpoint(memory_id: str):
+async def delete_memory_endpoint(
+    memory_id: str,
+    repo: LanceDBMemoryRepository = Depends(get_memory_repo),
+):
     from backend.memory.core import delete_memory
 
-    db = get_db()
-    if "memories" not in db.table_names():
+    safe_id = _validate_memory_id(memory_id)
+    if not repo.table_exists():
         raise HTTPException(status_code=404, detail="Memory not found")
 
-    tbl = db.open_table("memories")
-    safe_id = _validate_memory_id(memory_id)
-    rows = tbl.search().where(f"id = '{safe_id}'").limit(1).to_list()
-    if not rows or rows[0].get("status") == "archived":
+    existing = await repo.get(safe_id)
+    if existing is None:
         raise HTTPException(status_code=404, detail="Memory not found")
 
     try:

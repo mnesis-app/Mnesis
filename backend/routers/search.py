@@ -5,9 +5,9 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from backend.database.client import get_db
+from backend.database.client import get_db_dep
 from backend.memory.embedder import embed, get_status
 
 router = APIRouter(prefix="/api/v1/search", tags=["search"])
@@ -130,6 +130,7 @@ async def unified_search(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     sources: Optional[str] = None,
+    db=Depends(get_db_dep),
 ):
     safe_limit = max(1, min(int(limit), 150))
     query = str(q or "").strip()
@@ -139,8 +140,6 @@ async def unified_search(
     source_filters = _parse_sources(sources)
     if from_dt and to_dt and from_dt > to_dt:
         raise HTTPException(status_code=400, detail="date_from must be <= date_to")
-
-    db = get_db()
     now = datetime.now(timezone.utc)
     items: list[dict] = []
 

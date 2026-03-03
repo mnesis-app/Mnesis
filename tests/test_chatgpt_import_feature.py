@@ -209,7 +209,6 @@ def test_import_conversations_messages_deduplicates_existing_rows(monkeypatch):
             return self.tables[name]
 
     fake_db = FakeDb()
-    monkeypatch.setattr(import_export, "get_db", lambda: fake_db)
 
     async def _run_inline(write_op):
         return await write_op()
@@ -228,6 +227,7 @@ def test_import_conversations_messages_deduplicates_existing_rows(monkeypatch):
                 {"id": "m1", "conversation_id": "c1", "content": "dup"},
                 {"id": "m2", "conversation_id": "c2", "content": "new message"},
             ],
+            db=fake_db,
         )
     )
 
@@ -293,7 +293,6 @@ def test_import_conversations_messages_deduplicates_by_fingerprint(monkeypatch):
             return self.tables[name]
 
     fake_db = FakeDb()
-    monkeypatch.setattr(import_export, "get_db", lambda: fake_db)
 
     async def _run_inline(write_op):
         return await write_op()
@@ -322,6 +321,7 @@ def test_import_conversations_messages_deduplicates_by_fingerprint(monkeypatch):
                     "timestamp": "2026-01-15T10:01:00+00:00",
                 }
             ],
+            db=fake_db,
         )
     )
 

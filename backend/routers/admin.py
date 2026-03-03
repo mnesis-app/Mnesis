@@ -6,12 +6,12 @@ import uuid
 import json
 import os
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
 from backend.auth import normalize_client_scopes
 from backend.config import CONFIG_DIR, CONFIG_PATH, load_config, save_config, rotate_snapshot_token as rotate_token_logic
-from backend.database.client import get_db
+from backend.database.client import get_db_dep
 from backend.database.schema import Conversation, Message, EMBEDDING_DIM
 from backend.insights.service import get_insights_config_public, update_insights_config
 from backend.memory.write_queue import enqueue_write
@@ -999,10 +999,9 @@ async def test_insights_connection():
 
 
 @router.get("/background/status")
-async def get_background_status(include_heavy: bool = False):
+async def get_background_status(include_heavy: bool = False, db=Depends(get_db_dep)):
     cfg = load_config(force_reload=True)
     state = _load_scheduler_state()
-    db = get_db()
     scan_limits = {
         "memories": 300000 if include_heavy else 60000,
         "conversations": 300000 if include_heavy else 60000,
@@ -1548,8 +1547,7 @@ async def cancel_background_analysis_job(job_id: str):
 
 
 @router.post("/maintenance/conversations/deduplicate")
-async def deduplicate_conversations(payload: DeduplicateConversationsPayload):
-    db = get_db()
+async def deduplicate_conversations(payload: DeduplicateConversationsPayload, db=Depends(get_db_dep)):
     if "conversations" not in db.table_names():
         return {
             "status": "ok",
@@ -1615,7 +1613,7 @@ async def deduplicate_conversations(payload: DeduplicateConversationsPayload):
         }
 
     async def _write_op():
-        db_write = get_db()
+        db_write = db
         conv_clean = [_sanitize_conversation_row(r) for r in conv_by_key.values()]
         conv_clean.sort(key=lambda x: x.started_at, reverse=True)
 
@@ -1653,8 +1651,7 @@ async def deduplicate_conversations(payload: DeduplicateConversationsPayload):
 
 
 @router.post("/maintenance/conversations/delete-ids")
-async def delete_conversations_by_ids(payload: DeleteConversationsByIdPayload):
-    db = get_db()
+async def delete_conversations_by_ids(payload: DeleteConversationsByIdPayload, db=Depends(get_db_dep)):
     if "conversations" not in db.table_names():
         return {
             "status": "ok",
@@ -1686,7 +1683,7 @@ async def delete_conversations_by_ids(payload: DeleteConversationsByIdPayload):
     matched_ids = [str(r.get("id")) for r in rows if str(r.get("id") or "") in set(ids)]
 
     async def _write_op():
-        db_write = get_db()
+        db_write = db
         if "conversations" not in db_write.table_names():
             return {
                 "status": "ok",
@@ -1734,8 +1731,7 @@ async def delete_conversations_by_ids(payload: DeleteConversationsByIdPayload):
 
 
 @router.post("/maintenance/conversations/purge")
-async def purge_conversations(payload: PurgeConversationsPayload):
-    db = get_db()
+async def purge_conversations(payload: PurgeConversationsPayload, db=Depends(get_db_dep)):
     conv_total = 0
     msg_total = 0
 
@@ -1745,7 +1741,7 @@ async def purge_conversations(payload: PurgeConversationsPayload):
         msg_total = len(db.open_table("messages").search().limit(2000000).to_list())
 
     async def _write_op():
-        db_write = get_db()
+        db_write = db
         if "conversations" in db_write.table_names():
             db_write.drop_table("conversations")
         db_write.create_table("conversations", schema=Conversation)

@@ -15,12 +15,12 @@ import logging
 from typing import AsyncGenerator, Generator
 
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from backend.config import load_config
-from backend.database.client import get_db
+from backend.database.client import get_db_dep
 from backend.memory.embedder import embed, get_status as embedder_status
 
 logger = logging.getLogger(__name__)
@@ -36,9 +36,8 @@ class ChatRequest(BaseModel):
 
 # ── Memory retrieval ───────────────────────────────────────────────────────────
 
-def _retrieve_memories(query: str, limit: int) -> list[dict]:
+def _retrieve_memories(query: str, limit: int, db) -> list[dict]:
     """Hybrid search: vector similarity + lexical fallback."""
-    db = get_db()
     if "memories" not in db.table_names():
         return []
 
@@ -289,12 +288,12 @@ def _sse(event: str, data: str) -> str:
 # ── Endpoint ───────────────────────────────────────────────────────────────────
 
 @router.post("")
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, db=Depends(get_db_dep)):
     query = req.query.strip()
     if not query:
         return {"error": "empty query"}
 
-    memories = _retrieve_memories(query, req.limit)
+    memories = _retrieve_memories(query, req.limit, db)
     prompt = _build_prompt(query, memories)
 
     def generate() -> Generator[str, None, None]:

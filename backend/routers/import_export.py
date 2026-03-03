@@ -10,10 +10,10 @@ import shutil
 from typing import Any, Optional
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
-from backend.database.client import get_db
+from backend.database.client import get_db_dep
 from backend.database.schema import Conversation, Message
 from backend.memory.core import create_memory
 from backend.memory.importers.chatgpt import ChatGPTImporter
@@ -199,6 +199,7 @@ def _extract_importer_conversations(importer: ChatGPTImporter, file_path: str) -
 async def _import_conversations_messages(
     raw_conversations: list[dict[str, Any]],
     raw_messages: list[dict[str, Any]],
+    db,
 ) -> dict[str, int]:
     if not raw_conversations and not raw_messages:
         return {
@@ -211,7 +212,6 @@ async def _import_conversations_messages(
         }
 
     async def _write_op():
-        db = get_db()
         now = datetime.now(timezone.utc)
         conversations_added = 0
         messages_added = 0
@@ -474,9 +474,8 @@ async def _import_conversations_messages(
 
 
 @router.get("/export")
-async def export_data():
+async def export_data(db=Depends(get_db_dep)):
     try:
-        db = get_db()
         export = {
             "version": "1.1",
             "extracted_at": datetime.now(timezone.utc).isoformat(),
@@ -509,6 +508,7 @@ async def import_chatgpt_memory(
     file: Optional[UploadFile] = File(None),
     confirm: bool = Form(False),
     preview_id: Optional[str] = Form(None),
+    db=Depends(get_db_dep),
 ):
     if not file and not (confirm and preview_id):
         raise HTTPException(status_code=400, detail="A JSON file is required for ChatGPT import preview")
@@ -576,7 +576,7 @@ async def import_chatgpt_memory(
             ignored_from_preview = int(saved.get("ignored", 0))
 
         report = await _import_chatgpt_memories(selected_memories)
-        conv_report = await _import_conversations_messages(selected_conversations, selected_messages)
+        conv_report = await _import_conversations_messages(selected_conversations, selected_messages, db)
         report["ignored"] += ignored_from_preview
         report["detected_conversations"] = len(selected_conversations)
         report["detected_messages"] = len(selected_messages)
@@ -691,16 +691,16 @@ async def upload_import(
 
 
 @router.post("/confirm/{preview_id}")
-async def confirm_import(preview_id: str, background_tasks: BackgroundTasks):
+async def confirm_import(preview_id: str, background_tasks: BackgroundTasks, db=Depends(get_db_dep)):
     if preview_id not in _previews:
         raise HTTPException(status_code=404, detail="Preview not found or expired")
     data = _previews.pop(preview_id)
-    background_tasks.add_task(_process_import, data)
+    background_tasks.add_task(_process_import, data, db)
     count = len(data.get("memories", [])) + len(data.get("conversations", []))
     return {"status": "started", "count": count}
 
 
-async def _process_import(data: dict[str, Any]):
+async def _process_import(data: dict[str, Any], db):
     raw_memories = data.get("memories", [])
     raw_conversations = data.get("conversations", [])
     raw_messages = data.get("messages", [])
@@ -745,6 +745,6 @@ async def _process_import(data: dict[str, Any]):
 
     # 2. Conversations + messages
     try:
-        await _import_conversations_messages(raw_conversations, raw_messages)
+        await _import_conversations_messages(raw_conversations, raw_messages, db)
     except Exception as e:
         logger.error(f"Failed to import conversations/messages: {e}")

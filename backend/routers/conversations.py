@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 import logging
 from typing import Any, Optional, List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.config import load_config
-from backend.database.client import get_db
+from backend.database.client import get_db_dep
 from backend.memory.write_queue import enqueue_write
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
@@ -76,9 +76,9 @@ async def list_conversations(
     source_llm: Optional[str] = None,
     limit: int = 200,
     offset: int = 0,
+    db=Depends(get_db_dep),
 ):
     try:
-        db = get_db()
         if "conversations" not in db.table_names():
             return []
 
@@ -132,10 +132,9 @@ async def ingest_conversation(payload: ConversationIngestPayload):
 
 
 @router.delete("/{conversation_id}")
-async def delete_conversation(conversation_id: str):
+async def delete_conversation(conversation_id: str, db=Depends(get_db_dep)):
     """Soft delete a conversation."""
     try:
-        db = get_db()
         if "conversations" not in db.table_names():
             raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -165,11 +164,11 @@ async def search_conversations(
     query: str,
     limit: int = 5,
     source_llm: Optional[str] = None,
+    db=Depends(get_db_dep),
 ):
     # FTS/vector search on conversations is not indexed yet.
     # Current strategy: in-memory filter/rank over recent rows.
     try:
-        db = get_db()
         if "conversations" not in db.table_names():
             return []
 
@@ -257,10 +256,9 @@ async def mine_conversations_to_memories(payload: ConversationMemoryMiningPayloa
 
 
 @router.get("/{conversation_id}")
-async def get_conversation(conversation_id: str):
+async def get_conversation(conversation_id: str, db=Depends(get_db_dep)):
     """Get conversation details including messages."""
     try:
-        db = get_db()
 
         if "conversations" not in db.table_names():
             raise HTTPException(status_code=404, detail="Conversation not found")
