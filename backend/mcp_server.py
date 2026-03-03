@@ -20,7 +20,8 @@ logger = logging.getLogger("mnesis.mcp")
 from backend.auth import token_scope_allowed
 
 # Initialize FastMCP Server
-mcp = FastMCP("Mnesis")
+# streamable_http_path='/' so the sub-app's route is '/' when mounted at /mcp
+mcp = FastMCP("Mnesis", streamable_http_path="/")
 
 from backend.utils.context import session_id_ctx, mcp_client_name_ctx, mcp_client_scopes_ctx
 
@@ -536,32 +537,6 @@ async def note_exchange(
 
 
 def register_mcp(app):
-    """Mount the MCP server's SSE application at /mcp."""
-    sse = mcp.sse_app()
-    
-    # We monkey-patch the connect_sse handler in FastMCP so that the
-    # EventSourceResponse sends a keep-alive ping every 15 seconds.
-    # Without this, Uvicorn will terminate idle SSE streams after 60s,
-    # causing Claude Desktop and other clients to constantly disconnect.
-    try:
-        from sse_starlette.sse import EventSourceResponse
-        
-        # Only patch if not already patched
-        if not hasattr(EventSourceResponse, "_mnesis_patched"):
-            original_init = EventSourceResponse.__init__
-            
-            def _patched_init(self, *args, **kwargs):
-                if "ping" not in kwargs:
-                    kwargs["ping"] = 15
-                original_init(self, *args, **kwargs)
-                
-            EventSourceResponse.__init__ = _patched_init
-            EventSourceResponse._mnesis_patched = True
-            import logging
-            logging.getLogger("mnesis.mcp").info("Patched EventSourceResponse with 15s ping interval")
-
-    except Exception as e:
-        import logging
-        logging.getLogger("mnesis.mcp").warning(f"Failed to patch FastMCP keep-alives: {e}")
-
-    app.mount("/mcp", sse)
+    """Mount the MCP server's streamable-http application at /mcp."""
+    http_app = mcp.streamable_http_app()
+    app.mount("/mcp", http_app)
